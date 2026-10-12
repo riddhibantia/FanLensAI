@@ -166,6 +166,22 @@ def test_preferences_patch_persists(client: TestClient, session) -> None:
     assert body["refresh_policy"] == "AUTO"
 
 
+def test_preferences_explicit_nulls_leave_values_unchanged(client: TestClient) -> None:
+    """Clients (e.g. kotlinx.serialization with explicitNulls) may send nulls;
+    they must never erase stored values or 500 on first PATCH (regression)."""
+    headers = auth(client, "Nikki")
+    first = client.patch(
+        "/v1/me/preferences",
+        json={"overlay_enabled": True, "companion_mode": None, "tone": None},
+        headers=headers,
+    )
+    assert first.status_code == 200, first.text
+    body = first.json()
+    assert body["overlay_enabled"] is True
+    assert body["companion_mode"] == "TAP_TO_ACTIVATE"
+    assert body["tone"] == "NEUTRAL"
+
+
 def test_preferences_reject_bad_enum(client: TestClient) -> None:
     headers = auth(client, "Nikki")
     response = client.patch(

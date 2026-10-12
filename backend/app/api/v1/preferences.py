@@ -21,7 +21,9 @@ def update_preferences(
         session.flush()
 
     for field, value in body.model_dump(exclude_unset=True).items():
-        setattr(prefs, field, value)
+        # Explicit nulls mean "leave unchanged", never "erase to NULL".
+        if value is not None:
+            setattr(prefs, field, value)
     session.commit()
     session.refresh(prefs)
     return PreferencesResponse(

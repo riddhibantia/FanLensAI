@@ -37,8 +37,18 @@ android {
             isMinifyEnabled = false
         }
         debug {
-            // Android emulator reaches the host machine on 10.0.2.2.
-            buildConfigField("String", "DEFAULT_BASE_URL", "\"http://10.0.2.2:8000/\"")
+            // Emulator default. Physical device over USB: put
+            // fanlens.baseUrl=http://127.0.0.1:8000/ in android/local.properties
+            // (gitignored) and run `adb reverse tcp:8000 tcp:8000`.
+            val baseUrl = rootProject.file("local.properties")
+                .takeIf { it.exists() }
+                ?.readLines()
+                ?.firstOrNull { it.trimStart().startsWith("fanlens.baseUrl=") }
+                ?.substringAfter("=")
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: "http://10.0.2.2:8000/"
+            buildConfigField("String", "DEFAULT_BASE_URL", "\"$baseUrl\"")
         }
     }
 

@@ -35,7 +35,12 @@ class FanLensApi(
         .build()
 
     private val root = baseUrl.toHttpUrl()
-    private val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
+    internal val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+        // Partial PATCH bodies must stay partial: never send explicit nulls.
+        explicitNulls = false
+    }
 
     private val jsonMediaType = "application/json".toMediaType()
 

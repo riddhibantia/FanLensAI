@@ -3,6 +3,7 @@ package com.fanlens.ai.ui.screens
 import android.content.Context
 import android.os.Build
 import android.provider.Settings.canDrawOverlays
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -139,8 +141,12 @@ fun LeagueScreen(
             }
         }
 
-        // Demo controls + refresh policy
-        Row(modifier = Modifier.padding(top = 12.dp)) {
+        // Demo controls + refresh policy (scrolls horizontally on narrow screens).
+        Row(
+            modifier = Modifier
+                .padding(top = 12.dp)
+                .horizontalScroll(rememberScrollState()),
+        ) {
             Button(
                 onClick = { viewModel.injectDemoBalls(5) },
                 modifier = Modifier.padding(end = 8.dp),
@@ -191,6 +197,9 @@ fun LeagueScreen(
 
         if (uiState.loading) {
             CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+        }
+        if (uiState.message.isNotBlank()) {
+            Text(text = uiState.message, color = Color(0xFF69F0AE), modifier = Modifier.padding(top = 8.dp))
         }
         if (uiState.error.isNotBlank()) {
             Text(text = uiState.error, color = Color(0xFFFF8A80), modifier = Modifier.padding(top = 8.dp))
