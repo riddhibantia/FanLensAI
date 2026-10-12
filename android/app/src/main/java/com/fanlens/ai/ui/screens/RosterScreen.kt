@@ -50,7 +50,11 @@ fun RosterScreen(viewModel: LeagueViewModel) {
     val roster = remember { mutableStateListOf< RosterEntry>().apply { addAll(playerList()) } }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text("Your fantasy team", color = Color.White)
+        Text(
+            "YOUR FANTASY TEAM",
+            color = com.fanlens.ai.ui.theme.LabelSlate,
+            style = com.fanlens.ai.ui.theme.LabelStyle,
+        )
         OutlinedTextField(
             value = matchId,
             onValueChange = { matchId = it },

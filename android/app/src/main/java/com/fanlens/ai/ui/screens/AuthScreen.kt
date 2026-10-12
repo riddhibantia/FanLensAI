@@ -39,11 +39,17 @@ fun AuthScreen(viewModel: LeagueViewModel, onSignedIn: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         MascotBall(sizeDp = 96, reactive = false, onClick = {})
-        Text(text = "FanLens AI", color = Color.White, modifier = Modifier.padding(top = 16.dp))
+        Text(
+            text = "FanLens AI",
+            color = com.fanlens.ai.ui.theme.InkOnDark,
+            style = com.fanlens.ai.ui.theme.DisplayStyle,
+            modifier = Modifier.padding(top = 24.dp),
+        )
         Text(
             text = "Private fantasy cricket with friends",
-            color = Color.Gray,
-            modifier = Modifier.padding(bottom = 24.dp),
+            color = com.fanlens.ai.ui.theme.MutedSlate,
+            style = com.fanlens.ai.ui.theme.MetaStyle,
+            modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
         )
         OutlinedTextField(
             value = name,
@@ -55,6 +61,7 @@ fun AuthScreen(viewModel: LeagueViewModel, onSignedIn: () -> Unit) {
         Button(
             onClick = { viewModel.signIn(name) },
             enabled = name.isNotBlank(),
+            shape = com.fanlens.ai.ui.theme.PillShape,
             modifier = Modifier.padding(top = 16.dp).fillMaxWidth(),
         ) {
             Text("Continue")

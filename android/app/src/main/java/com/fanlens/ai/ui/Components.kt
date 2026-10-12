@@ -24,10 +24,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fanlens.ai.ui.theme.BallRed
+import com.fanlens.ai.ui.theme.Hairline
+import com.fanlens.ai.ui.theme.LabelStyle
+import com.fanlens.ai.ui.theme.PillShape
+import com.fanlens.ai.ui.theme.RuleStrong
 
 /**
- * The red cricket-ball mascot. `reactive` animates (Always Reactive); in
- * TAP_TO_ACTIVATE mode the mascot never animates on its own.
+ * The red cricket-ball mascot — the product's identity, kept as-is.
+ * `reactive` animates (Always Reactive); in TAP_TO_ACTIVATE mode the mascot
+ * never animates on its own.
  */
 @Composable
 fun MascotBall(
@@ -55,7 +60,7 @@ fun MascotBall(
             .size((sizeDp * scale).dp)
             .clip(CircleShape)
             .background(BallRed)
-            .border(2.dp, Color.White.copy(alpha = 0.35f), CircleShape)
+            .border(1.dp, RuleStrong, CircleShape)
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -67,20 +72,46 @@ fun MascotBall(
     }
 }
 
+/**
+ * Freshness status. DESIGN.md restraint: hairline pill, flat fill, uppercase
+ * label — no heavy chips or saturated backgrounds.
+ */
 @Composable
 fun FreshnessChip(freshness: String) {
-    val color = when (freshness) {
-        "LIVE" -> Color(0xFF2E7D32)
-        "DELAYED" -> Color(0xFFF9A825)
-        "STALE" -> Color(0xFFC62828)
-        else -> Color(0xFF616161) // DEMO
+    val accent = when (freshness) {
+        "LIVE" -> Color(0xFF69F0AE)
+        "DELAYED" -> SelfGoldTone
+        "STALE" -> Color(0xFFFF8A80)
+        "DEMO" -> Color(0xFF8AB4F8)
+        else -> MutedTone
     }
     Text(
         text = freshness,
-        color = Color.White,
+        color = accent,
+        style = LabelStyle,
         modifier = Modifier
-            .clip(CircleShape)
-            .background(color)
-            .padding(horizontal = 10.dp, vertical = 2.dp),
+            .clip(PillShape)
+            .background(accent.copy(alpha = 0.12f))
+            .border(1.dp, accent.copy(alpha = 0.45f), PillShape)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
     )
+}
+
+private val SelfGoldTone = Color(0xFFFFC24B)
+private val MutedTone = Color(0xFF93939F)
+
+/** Flat, hairline-bordered surface: DESIGN.md's containment default (no shadow). */
+@Composable
+fun FlatSurface(
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .clip(com.fanlens.ai.ui.theme.FanLensShapes.medium)
+            .background(com.fanlens.ai.ui.theme.PitchMid.copy(alpha = 0.5f))
+            .border(1.dp, Hairline, com.fanlens.ai.ui.theme.FanLensShapes.medium),
+    ) {
+        content()
+    }
 }

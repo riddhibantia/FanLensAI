@@ -45,7 +45,7 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
             .verticalScroll(scroll)
             .padding(16.dp),
     ) {
-        Text("Companion mode", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        SectionLabel("Companion mode")
         Row(modifier = Modifier.padding(top = 8.dp)) {
             FilterChip(
                 selected = settings.companionMode == CompanionMode.ALWAYS_REACTIVE,
@@ -68,7 +68,11 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
             modifier = Modifier.padding(top = 4.dp),
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = com.fanlens.ai.ui.theme.Hairline,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
 
         SettingRow(
             title = "Overlay visibility",
@@ -77,9 +81,13 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
             onCheckedChange = viewModel::setOverlayEnabled,
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = com.fanlens.ai.ui.theme.Hairline,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
 
-        Text("Score refresh", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        SectionLabel("Score refresh")
         Row(modifier = Modifier.padding(top = 8.dp)) {
             RefreshPolicy.entries.forEach { policy ->
                 FilterChip(
@@ -96,9 +104,13 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
             modifier = Modifier.padding(top = 4.dp),
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = com.fanlens.ai.ui.theme.Hairline,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
 
-        Text("Proactive triggers", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        SectionLabel("Proactive triggers")
         Column(modifier = Modifier.padding(top = 8.dp)) {
             TriggerCategory.entries.forEach { category ->
                 val selected = category in settings.triggerCategories
@@ -128,7 +140,11 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
             )
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = com.fanlens.ai.ui.theme.Hairline,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
 
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Quiet hours", color = Color.White)
@@ -168,9 +184,13 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
             modifier = Modifier.padding(top = 8.dp),
         ) { Text("Save quiet hours") }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = com.fanlens.ai.ui.theme.Hairline,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
 
-        Text("Motion level", style = MaterialTheme.typography.titleMedium, color = Color.White)
+        SectionLabel("Motion level")
         Row(modifier = Modifier.padding(top = 8.dp)) {
             MotionLevel.entries.forEach { level ->
                 FilterChip(
@@ -182,7 +202,11 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+        HorizontalDivider(
+            thickness = 1.dp,
+            color = com.fanlens.ai.ui.theme.Hairline,
+            modifier = Modifier.padding(vertical = 16.dp),
+        )
 
         SettingRow(
             title = "AI explanations",
@@ -191,7 +215,7 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
             onCheckedChange = viewModel::setAiEnabled,
         )
 
-        Text("Tone", color = Color.White, modifier = Modifier.padding(top = 12.dp))
+        SectionLabel("Tone")
         Row(modifier = Modifier.padding(top = 8.dp)) {
             listOf("NEUTRAL", "BANTER", "FORMAL").forEach { tone ->
                 FilterChip(
@@ -205,6 +229,16 @@ fun SettingsScreen(viewModel: LeagueViewModel) {
     }
 }
 
+/** DESIGN.md `mono-label`: uppercase technical section marker. */
+@Composable
+private fun SectionLabel(text: String) {
+    Text(
+        text = text.uppercase(),
+        color = com.fanlens.ai.ui.theme.LabelSlate,
+        style = com.fanlens.ai.ui.theme.LabelStyle,
+    )
+}
+
 @Composable
 private fun SettingRow(
     title: String,
@@ -213,12 +247,20 @@ private fun SettingRow(
     onCheckedChange: (Boolean) -> Unit,
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.fillMaxWidth(0.7f)) {
-            Text(title, color = Color.White)
-            Text(subtitle, color = Color.Gray)
+            Text(
+                title,
+                color = com.fanlens.ai.ui.theme.InkOnDark,
+                style = com.fanlens.ai.ui.theme.MetaStyle,
+            )
+            Text(
+                subtitle,
+                color = com.fanlens.ai.ui.theme.MutedSlate,
+                style = com.fanlens.ai.ui.theme.MetaStyle,
+            )
         }
         Switch(checked = checked, onCheckedChange = onCheckedChange)
     }

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -34,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import com.fanlens.ai.data.cache.CachedStanding
 import com.fanlens.ai.data.prefs.CompanionMode
 import com.fanlens.ai.overlay.OverlayController
+import com.fanlens.ai.ui.FlatSurface
 import com.fanlens.ai.ui.FreshnessChip
 import com.fanlens.ai.ui.LeagueViewModel
 import com.fanlens.ai.ui.MascotBall
@@ -76,13 +76,16 @@ fun LeagueScreen(
             )
             Text(
                 text = settings.displayName.ifBlank { "FanLens" },
-                color = Color.White,
+                color = com.fanlens.ai.ui.theme.InkOnDark,
+                style = com.fanlens.ai.ui.theme.DisplayStyle,
                 modifier = Modifier.padding(start = 12.dp),
             )
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 Text(
-                    text = if (settings.companionMode == CompanionMode.ALWAYS_REACTIVE) "Always Reactive" else "Tap to Activate",
-                    color = Color.Gray,
+                    text = (if (settings.companionMode == CompanionMode.ALWAYS_REACTIVE)
+                        "Always Reactive" else "Tap to Activate").uppercase(),
+                    color = com.fanlens.ai.ui.theme.LabelSlate,
+                    style = com.fanlens.ai.ui.theme.LabelStyle,
                 )
             }
         }
@@ -97,22 +100,28 @@ fun LeagueScreen(
                 text = com.fanlens.ai.data.prefs.Freshness.label(
                     freshness?.freshness ?: "", freshness?.updatedAt,
                 ),
-                color = Color.Gray,
+                color = com.fanlens.ai.ui.theme.MutedSlate,
+                style = com.fanlens.ai.ui.theme.MetaStyle,
                 modifier = Modifier.padding(start = 8.dp),
             )
         }
         if (!uiState.loading && standings.isEmpty()) {
             Text(
                 text = "No cached scores yet — play the demo or refresh. The widget shows the same cached data.",
-                color = Color.Gray,
+                color = com.fanlens.ai.ui.theme.MutedSlate,
+                style = com.fanlens.ai.ui.theme.MetaStyle,
                 modifier = Modifier.padding(top = 8.dp),
             )
         }
 
-        // League setup
-        Card(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-            Column(modifier = Modifier.padding(12.dp)) {
-                Text("League", color = Color.White)
+        // League setup — flat hairline surface, uppercase section label.
+        FlatSurface(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text(
+                    "LEAGUE",
+                    color = com.fanlens.ai.ui.theme.LabelSlate,
+                    style = com.fanlens.ai.ui.theme.LabelStyle,
+                )
                 OutlinedTextField(
                     value = leagueInput,
                     onValueChange = { leagueInput = it },
@@ -125,17 +134,19 @@ fun LeagueScreen(
                     label = { Text("Invite code") },
                     modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                 )
-                Row(modifier = Modifier.padding(top = 8.dp)) {
+                Row(modifier = Modifier.padding(top = 12.dp)) {
                     Button(
                         onClick = {
                             viewModel.createLeague("Sunday Smashers")
                         },
+                        shape = com.fanlens.ai.ui.theme.PillShape,
                         modifier = Modifier.padding(end = 8.dp),
                     ) { Text("Create") }
-                    Button(
+                    OutlinedButton(
                         onClick = {
                             viewModel.joinLeague(leagueInput, inviteInput)
                         },
+                        shape = com.fanlens.ai.ui.theme.PillShape,
                     ) { Text("Join") }
                 }
             }
@@ -149,13 +160,25 @@ fun LeagueScreen(
         ) {
             Button(
                 onClick = { viewModel.injectDemoBalls(5) },
+                shape = com.fanlens.ai.ui.theme.PillShape,
                 modifier = Modifier.padding(end = 8.dp),
             ) { Text("Play demo") }
-            OutlinedButton(onClick = { viewModel.refresh(force = true) }) { Text("Refresh") }
-            OutlinedButton(onClick = onOpenRoster, modifier = Modifier.padding(start = 8.dp)) {
+            OutlinedButton(
+                onClick = { viewModel.refresh(force = true) },
+                shape = com.fanlens.ai.ui.theme.PillShape,
+            ) { Text("Refresh") }
+            OutlinedButton(
+                onClick = onOpenRoster,
+                shape = com.fanlens.ai.ui.theme.PillShape,
+                modifier = Modifier.padding(start = 8.dp),
+            ) {
                 Text("Roster")
             }
-            OutlinedButton(onClick = onOpenSettings, modifier = Modifier.padding(start = 8.dp)) {
+            OutlinedButton(
+                onClick = onOpenSettings,
+                shape = com.fanlens.ai.ui.theme.PillShape,
+                modifier = Modifier.padding(start = 8.dp),
+            ) {
                 Text("Settings")
             }
         }
@@ -165,7 +188,11 @@ fun LeagueScreen(
             modifier = Modifier.padding(top = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Overlay", color = Color.White)
+            Text(
+                "OVERLAY",
+                color = com.fanlens.ai.ui.theme.LabelSlate,
+                style = com.fanlens.ai.ui.theme.LabelStyle,
+            )
             androidx.compose.material3.Switch(
                 checked = settings.overlayEnabled,
                 onCheckedChange = { enabled ->
@@ -180,18 +207,29 @@ fun LeagueScreen(
                     settings.overlayEnabled -> "on"
                     else -> "off"
                 },
-                color = Color.Gray,
+                color = com.fanlens.ai.ui.theme.MutedSlate,
+                style = com.fanlens.ai.ui.theme.MetaStyle,
                 modifier = Modifier.padding(start = 4.dp),
             )
         }
 
+        // Insight: the one dark product band on the screen (DESIGN.md
+        // `agent-console-card`), flat with a hairline edge.
         if (insight.isNotBlank()) {
-            Card(modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-                Text(
-                    text = insight,
-                    color = Color.White,
-                    modifier = Modifier.padding(12.dp),
-                )
+            FlatSurface(modifier = Modifier.fillMaxWidth().padding(top = 16.dp)) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "RIVALRY INTELLIGENCE",
+                        color = com.fanlens.ai.ui.theme.MutedSlate,
+                        style = com.fanlens.ai.ui.theme.LabelStyle,
+                    )
+                    Text(
+                        text = insight,
+                        color = com.fanlens.ai.ui.theme.InkOnDark,
+                        style = com.fanlens.ai.ui.theme.MetaStyle,
+                        modifier = Modifier.padding(top = 6.dp),
+                    )
+                }
             }
         }
 
@@ -205,56 +243,81 @@ fun LeagueScreen(
             Text(text = uiState.error, color = Color(0xFFFF8A80), modifier = Modifier.padding(top = 8.dp))
         }
 
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 12.dp)) {
+        LazyColumn(modifier = Modifier.fillMaxSize().padding(top = 16.dp)) {
             items(standings) { row -> StandingRowItem(row) }
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Recent events", color = Color.White, modifier = Modifier.weight(1f))
-                    OutlinedButton(onClick = { viewModel.refreshEvents() }) { Text("Load") }
+                    Text(
+                        "RECENT EVENTS",
+                        color = com.fanlens.ai.ui.theme.LabelSlate,
+                        style = com.fanlens.ai.ui.theme.LabelStyle,
+                        modifier = Modifier.weight(1f),
+                    )
+                    OutlinedButton(
+                        onClick = { viewModel.refreshEvents() },
+                        shape = com.fanlens.ai.ui.theme.PillShape,
+                    ) { Text("Load") }
                 }
             }
             items(events.takeLast(10).reversed()) { event ->
                 Text(
                     text = "#${event.sequence} ${event.eventType} · ${event.status}",
-                    color = Color.Gray,
-                    modifier = Modifier.padding(vertical = 2.dp),
+                    color = com.fanlens.ai.ui.theme.MutedSlate,
+                    style = com.fanlens.ai.ui.theme.MetaStyle,
+                    modifier = Modifier.padding(vertical = 4.dp),
                 )
             }
         }
     }
 }
 
+/** Rule-separated leaderboard row (DESIGN.md `research-table`), not a card. */
 @Composable
 private fun StandingRowItem(row: CachedStanding) {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.padding(12.dp).fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
+        Text(
+            text = "#${row.rank}",
+            color = if (row.isSelf) {
+                com.fanlens.ai.ui.theme.SelfGold
+            } else {
+                com.fanlens.ai.ui.theme.LabelSlate
+            },
+            style = com.fanlens.ai.ui.theme.LabelStyle,
+        )
+        Column(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
             Text(
-                text = "#${row.rank}",
-                color = if (row.isSelf) com.fanlens.ai.ui.theme.SelfGold else Color.Gray,
+                text = row.teamName + if (row.isSelf) " (you)" else "",
+                color = com.fanlens.ai.ui.theme.InkOnDark,
+                style = com.fanlens.ai.ui.theme.MetaStyle,
             )
-            Column(modifier = Modifier.padding(start = 12.dp).weight(1f)) {
-                Text(
-                    text = row.teamName + if (row.isSelf) " (you)" else "",
-                    color = Color.White,
-                )
-                Text(text = "${row.totalPoints} pts · gap ${row.gapToLeader}", color = Color.Gray)
-            }
             Text(
-                text = if (row.deltaVsPrevious.toDoubleOrNull() ?: 0.0 >= 0) {
-                    "+${row.deltaVsPrevious}"
-                } else {
-                    row.deltaVsPrevious
-                },
-                color = if ((row.deltaVsPrevious.toDoubleOrNull() ?: 0.0) >= 0) Color(0xFF69F0AE) else Color(0xFFFF8A80),
+                text = "${row.totalPoints} pts · gap ${row.gapToLeader}",
+                color = com.fanlens.ai.ui.theme.MutedSlate,
+                style = com.fanlens.ai.ui.theme.MetaStyle,
             )
         }
+        Text(
+            text = if ((row.deltaVsPrevious.toDoubleOrNull() ?: 0.0) >= 0) {
+                "+${row.deltaVsPrevious}"
+            } else {
+                row.deltaVsPrevious
+            },
+            color = if ((row.deltaVsPrevious.toDoubleOrNull() ?: 0.0) >= 0) {
+                Color(0xFF69F0AE)
+            } else {
+                Color(0xFFFF8A80)
+            },
+            style = com.fanlens.ai.ui.theme.MetaStyle,
+        )
     }
 }
