@@ -1,0 +1,12 @@
+[
+  {"batter": "p1", "bowler": "p2", "runs": 1, "wicket": false, "wicket_kind": null},
+  {"batter": "p1", "bowler": "p2", "runs": 4, "wicket": false, "wicket_kind": null},
+  {"batter": "p2", "bowler": "p3", "runs": 2, "wicket": false, "wicket_kind": null},
+  {"batter": "p2", "bowler": "p3", "runs": 6, "wicket": false, "wicket_kind": null},
+  {"batter": "p3", "bowler": "p4", "runs": 0, "wicket": true, "wicket_kind": "BOWLED"},
+  {"batter": "p5", "bowler": "p4", "runs": 4, "wicket": false, "wicket_kind": null},
+  {"batter": "p5", "bowler": "p4", "runs": 1, "wicket": false, "wicket_kind": null},
+  {"batter": "p6", "bowler": "p2", "runs": 6, "wicket": false, "wicket_kind": null},
+  {"batter": "p6", "bowler": "p2", "runs": 2, "wicket": false, "wicket_kind": null},
+  {"batter": "p6", "bowler": "p2", "runs": 1, "wicket": true, "wicket_kind": "CAUGHT", "fielder": "p7"}
+]

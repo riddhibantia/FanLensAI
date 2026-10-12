@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FanLens AI</string>
+    <string name="widget_loading">FanLens…</string>
+    <string name="notification_channel_name">Companion</string>
+    <string name="overlay_notification_text">FanLens companion is active</string>
+</resources>

@@ -1,0 +1,31 @@
+{
+  "name": "standard",
+  "version": "1.0",
+  "batting": {
+    "run": 1,
+    "boundary_bonus": 1,
+    "six_bonus": 2,
+    "duck": -5,
+    "milestone_50": 8,
+    "milestone_100": 16,
+    "strike_rate_bonus": 5,
+    "strike_rate_threshold": 140,
+    "min_balls_for_bonus": 10
+  },
+  "bowling": {
+    "wicket": 25,
+    "stumping": 12,
+    "haul_5": 16,
+    "economy_bonus": 5,
+    "economy_threshold": 7.5,
+    "min_balls_for_bonus": 12
+  },
+  "fielding": {
+    "catch": 8,
+    "run_out": 0
+  },
+  "multipliers": {
+    "captain": 2.0,
+    "vice": 1.5
+  }
+}

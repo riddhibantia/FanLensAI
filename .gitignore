@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.db
+.pytest_cache/
+.ruff_cache/
+*.log
+# Android
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+.DS_Store
