@@ -8,11 +8,15 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.ui.platform.LocalContext
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,10 +26,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -33,8 +40,8 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DynamicFeed
 import androidx.compose.material.icons.filled.Leaderboard
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.SportsCricket
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -54,30 +61,43 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fanlens.ai.ui.theme.AmberTrophy
+import com.fanlens.ai.ui.theme.AmberTrophyText
 import com.fanlens.ai.ui.theme.BallRed
 import com.fanlens.ai.ui.theme.EmeraldLive
+import com.fanlens.ai.ui.theme.EmeraldLiveText
 import com.fanlens.ai.ui.theme.ErrorContainerColor
 import com.fanlens.ai.ui.theme.ErrorRed
 import com.fanlens.ai.ui.theme.Hairline
 import com.fanlens.ai.ui.theme.LabelSlate
+import com.fanlens.ai.ui.theme.LeadDeltaBg
+import com.fanlens.ai.ui.theme.LeadDeltaIcon
+import com.fanlens.ai.ui.theme.LeadDeltaText
+import com.fanlens.ai.ui.theme.TabAlertDotActive
 import com.fanlens.ai.ui.theme.LabelStyle
+import com.fanlens.ai.ui.theme.MinTouchTarget
+import com.fanlens.ai.ui.theme.MutedText
 import com.fanlens.ai.ui.theme.OutlineVariantColor
+import com.fanlens.ai.ui.theme.WordmarkStyle
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.PrimaryContainerColor
 import com.fanlens.ai.ui.theme.SecondaryBlue
+import com.fanlens.ai.ui.theme.SecondaryBlueText
 import com.fanlens.ai.ui.theme.SecondaryContainerColor
 import com.fanlens.ai.ui.theme.SecondaryFixedColor
+import com.fanlens.ai.ui.theme.SurfaceBg
 import com.fanlens.ai.ui.theme.SurfaceCard
 import com.fanlens.ai.ui.theme.SurfaceContainer
 import com.fanlens.ai.ui.theme.SurfaceContainerHigh
@@ -267,18 +287,51 @@ fun MascotBall(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     Box(
         modifier = modifier
+            .size(MinTouchTarget)
             .clip(CircleShape)
             .clickable(
-                interactionSource = interactionSource,
-                indication = null,
                 onClick = onClick,
+                role = Role.Button,
+                onClickLabel = "Open Googly AI",
             ),
         contentAlignment = Alignment.Center,
     ) {
         GooglyAvatar(sizeDp = sizeDp, reactive = reactive)
+    }
+}
+
+/**
+ * Wraps a visually small control so its tappable area still meets the 48dp
+ * minimum. The inner content keeps its own size; only the hit area grows.
+ *
+ * Use this around any icon button drawn smaller than [MinTouchTarget], rather
+ * than shrinking the button itself — `IconButton(modifier = Modifier.size(28.dp))`
+ * shrinks the hit area along with the visual.
+ */
+@Composable
+fun TouchTarget(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    contentDescription: String? = null,
+    role: Role = Role.Button,
+    content: @Composable () -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .size(MinTouchTarget)
+            .clip(CircleShape)
+            .clickable(
+                enabled = enabled,
+                role = role,
+                onClickLabel = contentDescription,
+                onClick = onClick,
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        content()
     }
 }
 
@@ -304,10 +357,10 @@ fun OverBallChip(
     val (bg, textColor, border) = when (value) {
         "6" -> Triple(PrimaryContainerColor, Color.White, null)
         "W" -> Triple(ErrorContainerColor, ErrorRed, null)
-        "4" -> Triple(SecondaryFixedColor, SecondaryBlue, null)
+        "4" -> Triple(SecondaryFixedColor, SecondaryBlueText, null)
         "0" -> Triple(SurfaceContainerHigh, LabelSlate, BorderStrokeData(1.dp, OutlineVariantColor.copy(alpha = 0.4f)))
         else -> if (isCurrent) {
-            Triple(SurfaceCard, SecondaryBlue, BorderStrokeData(1.5.dp, SecondaryBlue, isDashed = true))
+            Triple(SurfaceCard, SecondaryBlueText, BorderStrokeData(1.5.dp, SecondaryBlue, isDashed = true))
         } else {
             Triple(SurfaceContainerHigh, PrimaryBlack, BorderStrokeData(1.dp, OutlineVariantColor.copy(alpha = 0.5f)))
         }
@@ -414,7 +467,7 @@ fun H2HRivalryBar(
                     .background(SecondaryContainerColor),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = userRank, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Black)
+                Text(text = userRank, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.width(5.dp))
             Text(text = userName, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
@@ -426,18 +479,18 @@ fun H2HRivalryBar(
         Row(
             modifier = Modifier
                 .clip(PillShape)
-                .background(Color(0xFFFFDAD3).copy(alpha = 0.6f))
+                .background(LeadDeltaBg.copy(alpha = 0.6f))
                 .padding(horizontal = 8.dp, vertical = 2.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
                 imageVector = Icons.Default.TrendingUp,
                 contentDescription = null,
-                tint = Color(0xFFDA5C40),
+                tint = LeadDeltaIcon,
                 modifier = Modifier.size(13.dp),
             )
             Spacer(modifier = Modifier.width(3.dp))
-            Text(text = leadDelta, color = Color(0xFF3D0600), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            Text(text = leadDelta, color = LeadDeltaText, fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
 
         // Rival
@@ -452,6 +505,20 @@ fun H2HRivalryBar(
 }
 
 /**
+ * The four top-level destinations.
+ *
+ * Single source of truth shared by the bottom bar and the navigation host, so
+ * a tab can never be drawn without a screen behind it. Previously the bar drew
+ * four tabs while only three had content wired up.
+ */
+enum class FanLensTab(val label: String, val icon: ImageVector) {
+    MATCHES("Matches", Icons.Default.SportsCricket),
+    LEAGUES("Leagues", Icons.Default.Leaderboard),
+    GOOGLY_AI("Googly AI", Icons.Default.SmartToy),
+    SETTINGS("Settings", Icons.Default.Settings),
+}
+
+/**
  * 4-Destination shared bottom navigation bar matching the HTML mockups.
  */
 @Composable
@@ -460,62 +527,98 @@ fun FanLensBottomBar(
     onTabSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    Box(
         modifier = modifier
             .fillMaxWidth()
-            .background(SurfaceCard.copy(alpha = 0.98f))
-            .border(1.dp, OutlineVariantColor.copy(alpha = 0.3f), RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp))
-            .padding(horizontal = 8.dp, vertical = 6.dp),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically,
+            .background(SurfaceCard)
+            .border(
+                width = 1.dp,
+                color = OutlineVariantColor.copy(alpha = 0.25f),
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            )
+            .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
-        val destinations = listOf(
-            Triple(0, "Matches", Icons.Default.SportsCricket),
-            Triple(1, "Leagues", Icons.Default.Leaderboard),
-            Triple(2, "Googly AI", Icons.Default.SmartToy),
-            Triple(3, "Settings", Icons.Default.Settings),
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            FanLensTab.entries.forEachIndexed { index, tab ->
+                val label = tab.label
+                val icon = tab.icon
+                val isSelected = currentTab == index
+                val contentColor = if (isSelected) Color.White else MutedText
 
-        destinations.forEach { (index, label, icon) ->
-            val isSelected = currentTab == index
-            val tint = if (isSelected) PrimaryBlack else LabelSlate
-
-            Column(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable { onTabSelected(index) }
-                    .padding(horizontal = 14.dp, vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                Box {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = label,
-                        tint = tint,
-                        modifier = Modifier.size(22.dp),
-                    )
-                    if (index == 2) {
-                        // Small red dot for Googly AI live intelligence
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .size(6.dp)
-                                .clip(CircleShape)
-                                .background(ErrorRed),
+                Column(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .selectable(
+                            selected = isSelected,
+                            role = Role.Tab,
+                            onClick = { onTabSelected(index) },
                         )
+                        .padding(horizontal = 4.dp, vertical = 2.dp)
+                        .heightIn(min = MinTouchTarget),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (isSelected) PrimaryBlack else Color.Transparent)
+                            .padding(horizontal = 16.dp, vertical = 5.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Box {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = contentColor,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            if (index == 2) {
+                                // Red indicator dot for Googly AI
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 3.dp, y = (-2).dp)
+                                        .size(7.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isSelected) TabAlertDotActive else ErrorRed),
+                                )
+                            } else if (index == 0) {
+                                // Live match indicator dot
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 3.dp, y = (-2).dp)
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(EmeraldLive),
+                                )
+                            }
+                        }
                     }
+                    Spacer(modifier = Modifier.height(3.dp))
+                    Text(
+                        text = label,
+                        fontSize = 11.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSelected) PrimaryBlack else MutedText,
+                        maxLines = 1,
+                    )
                 }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = label,
-                    fontSize = 10.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                    color = tint,
-                )
             }
         }
     }
 }
+
+/**
+ * Height reserved at the bottom of every scrollable tab so the last card clears
+ * the floating mascot. The bottom navigation bar itself is inset by the
+ * enclosing Scaffold, so this is only the mascot's clearance.
+ */
+val TabContentBottomPadding = 88.dp
 
 /**
  * Floating persistent Googly mascot buddy widget with speech bubble pill.
@@ -534,13 +637,15 @@ fun FloatingCompanionWidget(
     var dragging by remember { mutableStateOf(false) }
 
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
-        val maxX = with(density) { (maxWidth - 72.dp).toPx().coerceAtLeast(0f) }
+        // Reserve the full 48dp touch target plus the row's usual margin so the
+        // mascot can never be dragged so far that it becomes unreachable.
+        val maxX = with(density) { (maxWidth - 56.dp).toPx().coerceAtLeast(0f) }
         val maxY = with(density) { (maxHeight - 120.dp).toPx().coerceAtLeast(0f) }
 
         // If not initialized, place near bottom-right
         LaunchedEffect(maxWidth, maxHeight) {
             if (offsetX.isNaN() || offsetX <= 0f) {
-                offsetX = (maxX - with(density) { 16.dp.toPx() }).coerceAtLeast(0f)
+                offsetX = (maxX - with(density) { 8.dp.toPx() }).coerceAtLeast(0f)
             }
             if (offsetY.isNaN() || offsetY <= 0f) {
                 offsetY = (maxY - with(density) { 120.dp.toPx() }).coerceAtLeast(0f)
@@ -566,17 +671,31 @@ fun FloatingCompanionWidget(
                     }
                 },
         ) {
+            // 48dp hit area with a 52dp visual: press feedback confirms the tap
+            // registered, which previously had none.
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(MinTouchTarget)
                     .clip(CircleShape)
-                    .background(SurfaceCard)
-                    .border(2.dp, PrimaryContainerColor, CircleShape)
-                    .clickable(enabled = !dragging, onClick = onClick)
-                    .padding(4.dp),
+                    .clickable(
+                        enabled = !dragging,
+                        role = Role.Button,
+                        onClickLabel = "Open Googly AI",
+                        onClick = onClick,
+                    ),
                 contentAlignment = Alignment.Center,
             ) {
-                GooglyAvatar(sizeDp = 42, reactive = true, winking = true)
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceCard)
+                        .border(2.dp, PrimaryContainerColor, CircleShape)
+                        .padding(4.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    GooglyAvatar(sizeDp = 42, reactive = true, winking = true)
+                }
             }
         }
     }
@@ -584,8 +703,20 @@ fun FloatingCompanionWidget(
 
 /** Freshness status badge. */
 @Composable
-fun FreshnessChip(freshness: String) {
+fun FreshnessChip(
+    freshness: String,
+    modifier: Modifier = Modifier,
+) {
+    // Text uses the darkened variant; the same hue at full strength is kept for
+    // the border so the chip still reads as green/amber/red at a glance.
     val accent = when (freshness) {
+        "LIVE" -> EmeraldLiveText
+        "DELAYED" -> AmberTrophyText
+        "STALE" -> ErrorRed
+        "DEMO" -> SecondaryBlueText
+        else -> LabelSlate
+    }
+    val borderAccent = when (freshness) {
         "LIVE" -> EmeraldLive
         "DELAYED" -> AmberTrophy
         "STALE" -> ErrorRed
@@ -596,13 +727,78 @@ fun FreshnessChip(freshness: String) {
         text = freshness,
         color = accent,
         style = LabelStyle,
-        modifier = Modifier
+        modifier = modifier
             .clip(PillShape)
-            .background(accent.copy(alpha = 0.12f))
-            .border(1.dp, accent.copy(alpha = 0.45f), PillShape)
+            .background(borderAccent.copy(alpha = 0.12f))
+            .border(1.dp, borderAccent.copy(alpha = 0.45f), PillShape)
             .padding(horizontal = 10.dp, vertical = 3.dp),
     )
 }
+
+/**
+ * Brand splash.
+ *
+ * Shown once on cold start before the navigation host settles, so the first
+ * frame is the product mark rather than a half-built screen. Purely a UI
+ * overlay: it fades itself out and hands control back to the caller, and it
+ * gates nothing — no data is loaded or withheld while it is visible.
+ */
+@Composable
+fun FanLensSplash(
+    onFinished: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var visible by remember { mutableStateOf(true) }
+
+    LaunchedEffect(Unit) {
+        delay(SPLASH_HOLD_MS)
+        visible = false
+        onFinished()
+    }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn(tween(0)),
+        exit = fadeOut(tween(320)),
+        modifier = modifier,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(SurfaceBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    modifier = Modifier
+                        .size(108.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceCard)
+                        .border(1.dp, OutlineVariantColor.copy(alpha = 0.5f), CircleShape)
+                        .padding(6.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    GooglyAvatar(sizeDp = 96, reactive = false, winking = true)
+                }
+                Spacer(modifier = Modifier.height(22.dp))
+                Text(
+                    text = "FANLENS AI",
+                    style = WordmarkStyle.copy(fontSize = 32.sp, lineHeight = 38.sp),
+                    color = PrimaryBlack,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Dream11 Live Fantasy Companion",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MutedText,
+                )
+            }
+        }
+    }
+}
+
+private const val SPLASH_HOLD_MS = 900L
 
 /** Flat surface container. */
 @Composable

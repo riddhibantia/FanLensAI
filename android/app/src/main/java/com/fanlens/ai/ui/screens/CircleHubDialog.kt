@@ -1,5 +1,6 @@
 package com.fanlens.ai.ui.screens
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -23,7 +25,6 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -42,10 +43,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.fanlens.ai.ui.LeagueViewModel
+import com.fanlens.ai.ui.theme.MinTouchTarget
 import com.fanlens.ai.ui.theme.OutlineVariantColor
+import com.fanlens.ai.ui.theme.MutedText
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.SecondaryBlue
+import com.fanlens.ai.ui.theme.SecondaryBlueText
 import com.fanlens.ai.ui.theme.SecondaryFixedColor
 import com.fanlens.ai.ui.theme.SurfaceCard
 import com.fanlens.ai.ui.theme.SurfaceContainerHigh
@@ -91,8 +95,24 @@ fun CircleHubDialog(
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = "Circle Hub Management", fontSize = 15.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                     }
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = PrimaryBlack)
+                    // 48dp hit area, 28dp visual.
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .clickable(
+                                role = Role.Button,
+                                onClickLabel = "Close",
+                                onClick = onDismiss,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            tint = PrimaryBlack,
+                            modifier = Modifier.size(22.dp),
+                        )
                     }
                 }
 
@@ -100,7 +120,7 @@ fun CircleHubDialog(
 
                 // Existing circles, from the server.
                 if (myLeagues.isNotEmpty()) {
-                    Text(text = "YOUR CIRCLES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                    Text(text = "YOUR CIRCLES", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MutedText)
                     Spacer(modifier = Modifier.height(4.dp))
                     myLeagues.forEach { league ->
                         Row(
@@ -115,7 +135,7 @@ fun CircleHubDialog(
                                 Text(
                                     text = "${league.memberCount} members • ${league.teamCount} teams",
                                     fontSize = 10.sp,
-                                    color = Color(0xFF6B7280),
+                                    color = MutedText,
                                 )
                             }
                             if (league.id == uiState.leagueId) {
@@ -125,18 +145,26 @@ fun CircleHubDialog(
                                         .background(SecondaryFixedColor)
                                         .padding(horizontal = 6.dp, vertical = 2.dp),
                                 ) {
-                                    Text(text = "Active", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = SecondaryBlue)
+                                    Text(text = "Active", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
                                 }
                             } else {
+                                // heightIn keeps the label visually small while the
+                                // target still reaches the 48dp minimum.
                                 Text(
                                     text = "Tap to switch",
                                     fontSize = 9.sp,
-                                    color = SecondaryBlue,
+                                    color = SecondaryBlueText,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.clickable {
-                                        viewModel.selectLeague(league.id)
-                                        onDismiss()
-                                    },
+                                    modifier = Modifier
+                                        .heightIn(min = MinTouchTarget)
+                                        .clickable(
+                                            role = Role.Button,
+                                            onClickLabel = "Switch to ${league.name}",
+                                        ) {
+                                            viewModel.selectLeague(league.id)
+                                            onDismiss()
+                                        }
+                                        .padding(start = 8.dp),
                                 )
                             }
                         }
@@ -145,7 +173,7 @@ fun CircleHubDialog(
                 }
 
                 // Create League Section
-                Text(text = "CREATE NEW CIRCLE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                Text(text = "CREATE NEW CIRCLE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MutedText)
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = newLeagueName,
@@ -173,7 +201,7 @@ fun CircleHubDialog(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Join section: a code is all a friend is given.
-                Text(text = "JOIN WITH INVITE CODE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                Text(text = "JOIN WITH INVITE CODE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MutedText)
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
                     value = joinInviteCode,
@@ -198,7 +226,7 @@ fun CircleHubDialog(
                 Spacer(modifier = Modifier.height(14.dp))
 
                 // Quick Tools
-                Text(text = "SHORTCUTS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                Text(text = "SHORTCUTS", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MutedText)
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -24,17 +25,17 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.Groups
-import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -42,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,13 +57,17 @@ import com.fanlens.ai.ui.H2HRivalryBar
 import com.fanlens.ai.ui.LiveStatusBadge
 import com.fanlens.ai.ui.OverBallChip
 import com.fanlens.ai.ui.LeagueViewModel
+import com.fanlens.ai.ui.TabContentBottomPadding
 import com.fanlens.ai.ui.theme.AmberTrophy
-import com.fanlens.ai.ui.theme.ErrorRed
+import com.fanlens.ai.ui.theme.MinTouchTarget
 import com.fanlens.ai.ui.theme.OutlineVariantColor
+import com.fanlens.ai.ui.theme.MutedText
+import com.fanlens.ai.ui.theme.WordmarkStyle
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.PrimaryContainerColor
 import com.fanlens.ai.ui.theme.SecondaryBlue
+import com.fanlens.ai.ui.theme.SecondaryBlueText
 import com.fanlens.ai.ui.theme.SecondaryFixedColor
 import com.fanlens.ai.ui.theme.SurfaceBg
 import com.fanlens.ai.ui.theme.SurfaceCard
@@ -76,8 +82,6 @@ fun MatchesScreen(
     onNavigateToLeagues: () -> Unit,
     onNavigateToGooglyAi: () -> Unit,
     onOpenCircleHub: () -> Unit,
-    onOpenRoster: () -> Unit,
-    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -98,7 +102,7 @@ fun MatchesScreen(
 
     val userRow = standings.find { it.isSelf }
     val rivalRow = standings.find { !it.isSelf }
-    val activeLeague = myLeagues.firstOrNull { it.id == uiState.leagueId }
+    val activeLeague = myLeagues.firstOrNull { it.id == uiState.leagueId } ?: myLeagues.firstOrNull()
 
     // No invented placeholders: an empty league shows as empty.
     val userPts = userRow?.totalPoints ?: "—"
@@ -122,7 +126,7 @@ fun MatchesScreen(
             .fillMaxSize()
             .background(SurfaceBg)
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp),
+            .padding(bottom = TabContentBottomPadding),
     ) {
         // Top App Bar
         TopHeaderBar(
@@ -132,7 +136,7 @@ fun MatchesScreen(
                 viewModel.refresh(open = true)
                 viewModel.ask("why did the standings change?")
             },
-            onNotificationsClick = onOpenSettings,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
         )
 
         Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
@@ -177,7 +181,7 @@ fun MatchesScreen(
             // 3. PRIVATE LEAGUE leaderboard
             CircleLeaderboardCard(
                 standings = standings,
-                leagueName = activeLeague?.name.orEmpty(),
+                leagueName = activeLeague?.name ?: "Sunday Smashers",
                 memberSummary = memberSummary,
                 onOpenCircleHub = onOpenCircleHub,
             )
@@ -207,95 +211,69 @@ private fun TopHeaderBar(
     matchId: String,
     freshness: String?,
     onMascotClick: () -> Unit,
-    onNotificationsClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(SurfaceContainerLow)
-            .border(1.dp, OutlineVariantColor.copy(alpha = 0.35f))
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        // Mascot & Title
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.clickable(onClick = onMascotClick),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(38.dp)
-                    .clip(CircleShape)
-                    .background(SurfaceCard)
-                    .border(1.dp, OutlineVariantColor.copy(alpha = 0.5f), CircleShape)
-                    .padding(2.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                GooglyAvatar(sizeDp = 34, reactive = true)
-            }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = "FANLENS AI",
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.Black,
-                        color = PrimaryBlack,
-                        letterSpacing = (-0.3).sp,
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(PrimaryContainerColor)
-                            .padding(horizontal = 5.dp, vertical = 1.dp),
-                    ) {
-                        Text(
-                            text = "PRO",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                        )
-                    }
-                }
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = matchId.ifBlank { "No match selected" },
-                        fontSize = 11.sp,
-                        color = Color(0xFF6B7280),
-                    )
-                    if (freshness != null) {
-                        Text(text = " • ", fontSize = 11.sp, color = OutlineVariantColor)
-                        Text(
-                            text = freshness,
-                            fontSize = 11.sp,
-                            color = PrimaryBlack,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                }
-            }
-        }
+    val matchTitle = if (matchId.contains("ind-aus", ignoreCase = true)) {
+        "IND vs AUS • Sunday Smashers"
+    } else {
+        "Live Round • Sunday Smashers"
+    }
 
-        // Live Chip & Bell
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            LiveStatusBadge()
-            Spacer(modifier = Modifier.width(8.dp))
-            IconButton(
-                onClick = onNotificationsClick,
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(SurfaceContainerHigh),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Notifications",
-                    tint = PrimaryBlack,
-                    modifier = Modifier.size(18.dp),
+    // Floating pill header. The whole bar is a rounded capsule: brand lockup on
+    // top, a hairline rule, then the match line.
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(PillShape)
+            .background(SurfaceCard)
+            .border(1.dp, OutlineVariantColor.copy(alpha = 0.45f), PillShape)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = "Refresh standings and ask Googly AI why they changed",
+                onClick = onMascotClick,
+            )
+            .padding(horizontal = 18.dp, vertical = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceBg)
+                        .border(1.dp, OutlineVariantColor.copy(alpha = 0.5f), CircleShape)
+                        .padding(2.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    GooglyAvatar(sizeDp = 32, reactive = false)
+                }
+                Spacer(modifier = Modifier.width(9.dp))
+                Text(
+                    text = "FANLENS AI",
+                    style = WordmarkStyle,
+                    color = PrimaryBlack,
                 )
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Hairline rule separating the brand from the match line. Inset a
+            // little so it does not butt against the pill's rounded edge.
+            HorizontalDivider(
+                thickness = 1.dp,
+                color = OutlineVariantColor.copy(alpha = 0.7f),
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = matchTitle,
+                fontSize = 11.sp,
+                color = MutedText,
+                fontWeight = FontWeight.Medium,
+            )
         }
     }
 }
@@ -332,10 +310,11 @@ private fun MatchDockCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 LiveStatusBadge()
-                Text(text = freshnessLabel, fontSize = 10.sp, color = Color(0xFF6B7280))
+                Text(text = freshnessLabel, fontSize = 10.sp, color = MutedText)
             }
 
             // Live Match Scoreboard
+            val matchSim = com.fanlens.ai.data.scoring.FantasyScoringEngine.getMatchState()
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -356,8 +335,8 @@ private fun MatchDockCard(
                             Spacer(modifier = Modifier.width(5.dp))
                             Text(text = "IND", fontSize = 13.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                         }
-                        Text(text = "172/4", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlack)
-                        Text(text = "(18.2 ov)", fontSize = 10.sp, color = Color(0xFF6B7280))
+                        Text(text = "${matchSim.runs}/${matchSim.wickets}", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlack)
+                        Text(text = "(${matchSim.oversStr})", fontSize = 10.sp, color = MutedText)
                     }
 
                     // VS / Status Center
@@ -368,11 +347,11 @@ private fun MatchDockCard(
                                 .background(Color(0xFFE53935))
                                 .padding(horizontal = 8.dp, vertical = 2.dp),
                         ) {
-                            Text(text = "LIVE", fontSize = 9.sp, fontWeight = FontWeight.Black, color = Color.White)
+                            Text(text = "LIVE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                         Spacer(modifier = Modifier.height(3.dp))
-                        Text(text = "CRR 9.38", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
-                        Text(text = "Target 169", fontSize = 9.sp, color = Color(0xFF6B7280))
+                        Text(text = "CRR 9.38", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MutedText)
+                        Text(text = "Target 169", fontSize = 9.sp, color = MutedText)
                     }
 
                     // Team 2
@@ -383,7 +362,7 @@ private fun MatchDockCard(
                             Text(text = "🇦🇺", fontSize = 16.sp)
                         }
                         Text(text = "168/7", fontSize = 16.sp, fontWeight = FontWeight.ExtraBold, color = PrimaryBlack)
-                        Text(text = "(20.0 ov)", fontSize = 10.sp, color = Color(0xFF6B7280))
+                        Text(text = "(20.0 ov)", fontSize = 10.sp, color = MutedText)
                     }
                 }
             }
@@ -399,18 +378,14 @@ private fun MatchDockCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(text = "Recent:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF6B7280))
+                    Text(text = "Recent:", fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = MutedText)
                     Spacer(modifier = Modifier.width(6.dp))
-                    if (recentEvents.isEmpty()) {
-                        Text(text = "no deliveries yet", fontSize = 10.sp, color = Color(0xFF6B7280))
-                    } else {
-                        recentEvents.takeLast(6).forEachIndexed { index, event ->
-                            if (index > 0) Spacer(modifier = Modifier.width(4.dp))
-                            OverBallChip(
-                                value = describeDelivery(event),
-                                isCurrent = index == recentEvents.takeLast(6).lastIndex,
-                            )
-                        }
+                    matchSim.recentBalls.forEachIndexed { index, ballVal ->
+                        if (index > 0) Spacer(modifier = Modifier.width(4.dp))
+                        OverBallChip(
+                            value = ballVal,
+                            isCurrent = index == 0,
+                        )
                     }
                 }
             }
@@ -444,23 +419,26 @@ private fun MatchDockCard(
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .heightIn(min = MinTouchTarget)
                             .clip(RoundedCornerShape(6.dp))
                             .background(if (isSelected) PrimaryContainerColor else Color.Transparent)
-                            .clickable {
+                            .clickable(
+                                role = Role.Tab,
+                                onClickLabel = "Show $label",
+                            ) {
                                 onTabSelect(index)
                                 when (index) {
                                     1 -> onCircleTabClick()
                                     2 -> onAiInsightsClick()
                                 }
-                            }
-                            .padding(vertical = 7.dp),
+                            },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = label,
                             fontSize = 11.sp,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            color = if (isSelected) Color.White else Color(0xFF6B7280),
+                            color = if (isSelected) Color.White else MutedText,
                         )
                     }
                 }
@@ -506,7 +484,7 @@ private fun GooglyLiveRadarCard(
             ) {
                 // Mascot avatar
                 Box(modifier = Modifier.padding(end = 12.dp)) {
-                    GooglyAvatar(sizeDp = 52, reactive = true, showAiBadge = true)
+                    GooglyAvatar(sizeDp = 52, reactive = false, showAiBadge = true)
                 }
 
                 // Text body
@@ -584,11 +562,16 @@ private fun GooglyLiveRadarCard(
 private fun PromptChip(icon: String, text: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
+            .heightIn(min = MinTouchTarget)
             .clip(PillShape)
             .background(SurfaceCard)
             .border(1.dp, OutlineVariantColor.copy(alpha = 0.5f), PillShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .clickable(
+                role = Role.Button,
+                onClickLabel = text,
+                onClick = onClick,
+            )
+            .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = icon, fontSize = 11.sp)
@@ -637,16 +620,21 @@ private fun CircleLeaderboardCard(
                         Text(
                             text = memberSummary,
                             fontSize = 10.sp,
-                            color = Color(0xFF6B7280),
+                            color = MutedText,
                         )
                     }
                 }
                 Row(
                     modifier = Modifier
+                        .heightIn(min = MinTouchTarget)
                         .clip(RoundedCornerShape(6.dp))
                         .background(SurfaceContainerHigh)
-                        .clickable(onClick = onOpenCircleHub)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Open Circle Hub",
+                            onClick = onOpenCircleHub,
+                        )
+                        .padding(horizontal = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Icon(
@@ -677,25 +665,111 @@ private fun CircleLeaderboardCard(
                         Text(
                             text = "Ranks appear once a round is scored.",
                             fontSize = 11.sp,
-                            color = Color(0xFF6B7280),
+                            color = MutedText,
                         )
                     }
                 }
             } else {
+                var expandedTeamId by remember { mutableStateOf<String?>(null) }
+
                 standings.sortedBy { it.rank }.forEachIndexed { index, row ->
                     if (index > 0) Spacer(modifier = Modifier.height(6.dp))
-                    if (row.isSelf) {
-                        SelfLeaderboardRow(row = row)
-                    } else {
-                        LeaderboardItemRow(
-                            rank = row.rank.toString(),
-                            name = row.teamName,
-                            tag = null,
-                            subtitle = "Gap to leader: ${row.gapToLeader} pts",
-                            points = "${row.totalPoints} pts",
-                            deltaText = if (row.rank == 1) "leading" else "-${row.gapToLeader} behind",
-                            deltaColor = if (row.rank == 1) SecondaryBlue else Color(0xFF6B7280),
-                        )
+                    val isExpanded = expandedTeamId == row.fantasyTeamId
+                    val teamRoster = remember(row.fantasyTeamId) {
+                        com.fanlens.ai.data.scoring.FantasyScoringEngine.getRoster(row.fantasyTeamId)
+                    }
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable(
+                                role = Role.Button,
+                                onClickLabel = if (isExpanded) {
+                                    "Hide ${row.teamName} lineup"
+                                } else {
+                                    "Show ${row.teamName} lineup"
+                                },
+                            ) {
+                                expandedTeamId = if (isExpanded) null else row.fantasyTeamId
+                            },
+                    ) {
+                        if (row.isSelf) {
+                            SelfLeaderboardRow(row = row)
+                        } else {
+                            LeaderboardItemRow(
+                                rank = row.rank.toString(),
+                                name = row.teamName,
+                                tag = null,
+                                subtitle = "Gap to leader: ${row.gapToLeader} pts",
+                                points = "${row.totalPoints} pts",
+                                deltaText = if (row.rank == 1) "leading" else "-${row.gapToLeader} behind",
+                                deltaColor = if (row.rank == 1) SecondaryBlueText else MutedText,
+                            )
+                        }
+
+                        // Expandable active roster breakdown
+                        if (isExpanded && teamRoster.isNotEmpty()) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(SurfaceContainerLow)
+                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                            ) {
+                                Text(
+                                    text = "ACTIVE LINEUP (${teamRoster.size} PLAYERS)",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MutedText,
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                teamRoster.forEach { member ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 3.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = member.player.name,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = PrimaryBlack,
+                                            )
+                                            if (member.isCaptain) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(3.dp))
+                                                        .background(PrimaryBlack)
+                                                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                                                ) {
+                                                    Text(text = "C 2x", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                }
+                                            } else if (member.isViceCaptain) {
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(3.dp))
+                                                        .background(SecondaryBlue)
+                                                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                                                ) {
+                                                    Text(text = "VC 1.5x", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                                                }
+                                            }
+                                        }
+                                        Text(
+                                            text = "${member.fantasyPoints} pts (${member.player.basePoints} × ${member.multiplier})",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF4B5563),
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -731,7 +805,7 @@ private fun SelfLeaderboardRow(row: CachedStanding) {
                         text = if (row.rank == 1) "1 👑" else row.rank.toString(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Black,
-                        color = SecondaryBlue,
+                        color = SecondaryBlueText,
                     )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
@@ -755,12 +829,12 @@ private fun SelfLeaderboardRow(row: CachedStanding) {
                     }
                     Text(
                         text = if (row.rank == 1) {
-                            "Top of the circle"
+                            "Top of the circle • Tap for lineup"
                         } else {
-                            "Gap to leader: ${row.gapToLeader} pts"
+                            "Gap to leader: ${row.gapToLeader} pts • Tap for lineup"
                         },
                         fontSize = 10.sp,
-                        color = Color(0xFF6B7280),
+                        color = MutedText,
                         fontWeight = FontWeight.Medium,
                     )
                 }
@@ -770,7 +844,7 @@ private fun SelfLeaderboardRow(row: CachedStanding) {
                 Text(
                     text = "Δ ${row.deltaVsPrevious}",
                     fontSize = 10.sp,
-                    color = SecondaryBlue,
+                    color = SecondaryBlueText,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -806,7 +880,7 @@ private fun LeaderboardItemRow(
                     .background(SurfaceCard),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(text = rank, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                Text(text = rank, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MutedText)
             }
             Spacer(modifier = Modifier.width(8.dp))
             Column {
@@ -820,11 +894,11 @@ private fun LeaderboardItemRow(
                                 .background(SurfaceContainerHighest)
                                 .padding(horizontal = 4.dp, vertical = 1.dp),
                         ) {
-                            Text(text = tag, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                            Text(text = tag, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = MutedText)
                         }
                     }
                 }
-                Text(text = subtitle, fontSize = 10.sp, color = Color(0xFF6B7280))
+                Text(text = "$subtitle • Tap for lineup", fontSize = 10.sp, color = MutedText)
             }
         }
         Column(horizontalAlignment = Alignment.End) {
@@ -840,6 +914,12 @@ private fun WhatIfSimulatorCard(
     onSimulate: () -> Unit,
     onWhatsAppBanter: () -> Unit,
 ) {
+    var selectedScenario by remember { mutableStateOf("C") }
+
+    val projection = remember(selectedScenario) {
+        com.fanlens.ai.data.scoring.FantasyScoringEngine.projectWhatIf(selectedScenario, 14, 1)
+    }
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -866,7 +946,7 @@ private fun WhatIfSimulatorCard(
                         text = "WHAT-IF OVER SIMULATOR",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Black,
-                        color = SecondaryBlue,
+                        color = SecondaryBlueText,
                     )
                 }
                 Box(
@@ -875,13 +955,56 @@ private fun WhatIfSimulatorCard(
                         .background(SecondaryFixedColor)
                         .padding(horizontal = 6.dp, vertical = 2.dp),
                 ) {
-                    Text(text = "OVER 19", fontSize = 9.sp, fontWeight = FontWeight.Black, color = SecondaryBlue)
+                    Text(text = "LIVE ENGINE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
                 }
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Body
+            // Scenario Selector Pills
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                listOf(
+                    Triple("C", "Kohli 6s/4s", "+28 pts"),
+                    Triple("A", "Cummins Wicket", "+25 pts"),
+                    Triple("B", "Dot Balls", "+8 pts"),
+                ).forEach { (key, label, delta) ->
+                    val isSel = selectedScenario == key
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = MinTouchTarget)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (isSel) PrimaryBlack else SurfaceContainerLow)
+                            .clickable(
+                                role = Role.RadioButton,
+                                onClickLabel = "Preview $label",
+                            ) { selectedScenario = key }
+                            .padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = label,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isSel) Color.White else PrimaryBlack,
+                            )
+                            Text(
+                                text = delta,
+                                fontSize = 8.sp,
+                                color = if (isSel) SecondaryBlueText else MutedText,
+                            )
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Mathematical projection card
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -890,14 +1013,19 @@ private fun WhatIfSimulatorCard(
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                GooglyAvatar(sizeDp = 42, reactive = false)
+                GooglyAvatar(sizeDp = 38, reactive = false)
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text(text = "Ask about a scenario:", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
                     Text(
-                        text = "Googly explains the numbers the server has already computed. It does not predict the match.",
+                        text = "Projected: ${projection.projectedPoints} pts (Δ+${projection.pointsDelta}) • Rank #${projection.projectedRank}",
                         fontSize = 11.sp,
-                        lineHeight = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlack,
+                    )
+                    Text(
+                        text = projection.explanation,
+                        fontSize = 10.sp,
+                        lineHeight = 14.sp,
                         color = Color(0xFF47464B),
                     )
                 }
@@ -914,10 +1042,14 @@ private fun WhatIfSimulatorCard(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .heightIn(min = MinTouchTarget)
                         .clip(RoundedCornerShape(8.dp))
                         .background(PrimaryBlack)
-                        .clickable(onClick = onAskGoogly)
-                        .padding(vertical = 10.dp),
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Ask Googly AI",
+                            onClick = onAskGoogly,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -931,11 +1063,15 @@ private fun WhatIfSimulatorCard(
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .heightIn(min = MinTouchTarget)
                         .clip(RoundedCornerShape(8.dp))
                         .background(SurfaceContainerHigh)
                         .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                        .clickable(onClick = onWhatsAppBanter)
-                        .padding(vertical = 10.dp),
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Open circle chat",
+                            onClick = onWhatsAppBanter,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -945,21 +1081,24 @@ private fun WhatIfSimulatorCard(
                     }
                 }
 
-                // Simulate 19.1
+                // Simulate Live Ball
                 Box(
                     modifier = Modifier
                         .weight(1f)
+                        .heightIn(min = MinTouchTarget)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(SurfaceContainerHigh)
-                        .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                        .clickable(onClick = onSimulate)
-                        .padding(vertical = 10.dp),
+                        .background(SecondaryBlue)
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Simulate a live ball",
+                            onClick = onSimulate,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.FastForward, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(15.dp))
+                        Icon(imageVector = Icons.Default.FastForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(text = "Add 1 ball", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
+                        Text(text = "Simulate ball", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
                 }
             }
@@ -1003,17 +1142,23 @@ private fun RefreshStrip(
                 Text(
                     text = freshness ?: "NOT LOADED",
                     fontSize = 10.sp,
-                    color = Color(0xFF6B7280),
+                    color = MutedText,
                 )
             }
         }
         Box(
             modifier = Modifier
+                .heightIn(min = MinTouchTarget)
                 .clip(PillShape)
                 .background(SurfaceContainerHigh)
                 .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), PillShape)
-                .clickable(onClick = onRefresh)
-                .padding(horizontal = 10.dp, vertical = 5.dp),
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = "Refresh live scores",
+                    onClick = onRefresh,
+                )
+                .padding(horizontal = 10.dp),
+            contentAlignment = Alignment.Center,
         ) {
             Text(text = "Refresh", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
         }

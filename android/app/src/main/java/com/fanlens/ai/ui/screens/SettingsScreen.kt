@@ -4,10 +4,13 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -34,6 +37,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
@@ -59,17 +64,21 @@ import com.fanlens.ai.data.prefs.RefreshPolicy
 import com.fanlens.ai.data.prefs.TriggerCategory
 import com.fanlens.ai.ui.LeagueViewModel
 import com.fanlens.ai.ui.theme.EmeraldLive
+import com.fanlens.ai.ui.theme.EmeraldLiveText
 import com.fanlens.ai.ui.theme.EmeraldLiveBg
+import com.fanlens.ai.ui.theme.MutedText
 import com.fanlens.ai.ui.theme.OutlineVariantColor
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.SecondaryBlue
+import com.fanlens.ai.ui.theme.SecondaryBlueText
 import com.fanlens.ai.ui.theme.SecondaryFixedColor
 import com.fanlens.ai.ui.theme.SurfaceBg
 import com.fanlens.ai.ui.theme.SurfaceCard
 import com.fanlens.ai.ui.theme.SurfaceContainerHigh
 import com.fanlens.ai.ui.theme.SurfaceContainerLow
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: LeagueViewModel,
@@ -99,23 +108,29 @@ fun SettingsScreen(
             IconButton(
                 onClick = onBack,
                 modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(SurfaceCard)
-                    .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), CircleShape),
+                    .size(48.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = PrimaryBlack,
-                    modifier = Modifier.size(18.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceCard)
+                        .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = PrimaryBlack,
+                        modifier = Modifier.size(18.dp),
+                    )
+                }
             }
             Spacer(modifier = Modifier.width(10.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.Tune, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(16.dp))
+                Icon(imageVector = Icons.Default.Tune, contentDescription = null, tint = SecondaryBlueText, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "App Settings & AI Config", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
+                Text(text = "App Settings", fontSize = 15.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
             }
         }
 
@@ -142,7 +157,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Key, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(18.dp))
+                            Icon(imageVector = Icons.Default.Key, contentDescription = null, tint = SecondaryBlueText, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(text = "EXPLANATION ENGINE", fontSize = 11.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                         }
@@ -156,7 +171,7 @@ fun SettingsScreen(
                                 text = if (settings.aiEnabled) "Server-side" else "Off",
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (settings.aiEnabled) EmeraldLive else Color(0xFF6B7280),
+                                color = if (settings.aiEnabled) EmeraldLiveText else MutedText,
                             )
                         }
                     }
@@ -167,9 +182,9 @@ fun SettingsScreen(
                             "checks every number in an explanation against its own standings, and falls " +
                             "back to a plain template when the model is unavailable. No API key is stored " +
                             "on this device.",
-                        fontSize = 11.sp,
-                        color = Color(0xFF6B7280),
-                        lineHeight = 15.sp,
+                        fontSize = 12.sp,
+                        color = MutedText,
+                        lineHeight = 17.sp,
                     )
                 }
             }
@@ -189,7 +204,13 @@ fun SettingsScreen(
                     Text(text = "COMPANION MODE", fontSize = 11.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // FlowRow, not Row: these labels wrap onto a second line at
+                    // large font scale instead of clipping off the card edge.
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         FilterChip(
                             selected = settings.companionMode == CompanionMode.ALWAYS_REACTIVE,
                             onClick = { viewModel.setCompanionMode(CompanionMode.ALWAYS_REACTIVE) },
@@ -203,7 +224,6 @@ fun SettingsScreen(
                             colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryBlack, selectedLabelColor = Color.White),
                         )
                     }
-
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = when (settings.companionMode) {
@@ -211,7 +231,7 @@ fun SettingsScreen(
                             CompanionMode.TAP_TO_ACTIVATE -> "Zero unsolicited animations or AI insights. Tap the mascot anytime to refresh or ask questions."
                         },
                         fontSize = 11.sp,
-                        color = Color(0xFF6B7280),
+                        color = MutedText,
                     )
                 }
             }
@@ -235,7 +255,7 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(text = "Cross-App Overlay Dock", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
-                            Text(text = "Floating mascot widget over streaming apps", fontSize = 10.sp, color = Color(0xFF6B7280))
+                            Text(text = "Floating mascot widget over streaming apps", fontSize = 10.sp, color = MutedText)
                         }
                         Switch(
                             checked = settings.overlayEnabled,
@@ -248,9 +268,13 @@ fun SettingsScreen(
                     HorizontalDivider(thickness = 1.dp, color = OutlineVariantColor.copy(alpha = 0.3f))
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    Text(text = "SCORE REFRESH POLICY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                    Text(text = "SCORE REFRESH POLICY", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MutedText)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         RefreshPolicy.entries.forEach { policy ->
                             val isSel = settings.refreshPolicy == policy
                             FilterChip(
@@ -279,7 +303,11 @@ fun SettingsScreen(
                     Text(text = "PROACTIVE TRIGGERS & SENSITIVITY", fontSize = 11.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         TriggerCategory.entries.forEach { category ->
                             val selected = category in settings.triggerCategories
                             FilterChip(
@@ -297,7 +325,7 @@ fun SettingsScreen(
                     Spacer(modifier = Modifier.height(10.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(text = "Lead Gap Threshold", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
-                        Text(text = "${settings.gapThreshold} pts", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = SecondaryBlue)
+                        Text(text = "${settings.gapThreshold} pts", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
                     }
                     Slider(
                         value = settings.gapThreshold.toFloat(),
@@ -314,7 +342,7 @@ fun SettingsScreen(
                     ) {
                         Column {
                             Text(text = "Quiet Hours (Night Mode)", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
-                            Text(text = "Suppress notifications and vibrations", fontSize = 10.sp, color = Color(0xFF6B7280))
+                            Text(text = "Suppress notifications and vibrations", fontSize = 10.sp, color = MutedText)
                         }
                         Switch(
                             checked = settings.quietHours.enabled,
@@ -322,6 +350,44 @@ fun SettingsScreen(
                                 viewModel.setQuietHours(it, settings.quietHours.startMinutes, settings.quietHours.endMinutes)
                             },
                             colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = SecondaryBlue),
+                        )
+                    }
+
+                    // The toggle was previously the only control here — the
+                    // start/end state existed but had no UI, so quiet hours
+                    // could not actually be aimed at a window.
+                    if (settings.quietHours.enabled) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            QuietHourField(
+                                label = "From",
+                                value = quietStartInput,
+                                modifier = Modifier.weight(1f),
+                                onChange = { hours ->
+                                    quietStartInput = hours.toString()
+                                    viewModel.setQuietHours(true, hours * 60, settings.quietHours.endMinutes)
+                                },
+                            )
+                            Text(text = "to", fontSize = 12.sp, color = MutedText)
+                            QuietHourField(
+                                label = "To",
+                                value = quietEndInput,
+                                modifier = Modifier.weight(1f),
+                                onChange = { hours ->
+                                    quietEndInput = hours.toString()
+                                    viewModel.setQuietHours(true, settings.quietHours.startMinutes, hours * 60)
+                                },
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "Hours 0–23, midnight counted as 0. Outside this window the mascot stays quiet.",
+                            fontSize = 10.sp,
+                            color = MutedText,
                         )
                     }
                 }
@@ -346,7 +412,7 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(text = "Enable AI Tactical Explanations", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
-                            Text(text = "Deterministic validation prevents hallucinated scores", fontSize = 10.sp, color = Color(0xFF6B7280))
+                            Text(text = "Deterministic validation prevents hallucinated scores", fontSize = 10.sp, color = MutedText)
                         }
                         Switch(
                             checked = settings.aiEnabled,
@@ -356,9 +422,13 @@ fun SettingsScreen(
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text(text = "GOOGLY AI MASCOT TONE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                    Text(text = "GOOGLY AI MASCOT TONE", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MutedText)
                     Spacer(modifier = Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
                         listOf("NEUTRAL", "BANTER", "TACTICAL").forEach { tone ->
                             val isSel = settings.tone == tone
                             FilterChip(
@@ -375,4 +445,35 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(30.dp))
         }
     }
+}
+
+/**
+ * One quiet-hours bound. Hours only (0–23) — minutes were never part of the
+ * stored setting, so exposing them would imply precision the backend ignores.
+ * Invalid or out-of-range input is clamped before it reaches the store.
+ */
+@Composable
+private fun QuietHourField(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    onChange: (Int) -> Unit,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { text ->
+            text.filter { it.isDigit() }.take(2).toIntOrNull()?.let { hours ->
+                onChange(hours.coerceIn(0, 23))
+            }
+        },
+        label = { Text(text = label) },
+        modifier = modifier,
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        textStyle = LocalTextStyle.current.copy(fontSize = 14.sp, color = PrimaryBlack),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedBorderColor = SecondaryBlue,
+            unfocusedBorderColor = OutlineVariantColor.copy(alpha = 0.5f),
+        ),
+    )
 }

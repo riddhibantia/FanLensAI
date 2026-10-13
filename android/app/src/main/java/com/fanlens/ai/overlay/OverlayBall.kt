@@ -36,14 +36,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fanlens.ai.ui.GooglyAvatar
+import com.fanlens.ai.ui.theme.BallRed
 import com.fanlens.ai.ui.theme.EmeraldLive
 import com.fanlens.ai.ui.theme.EmeraldLiveBg
+import com.fanlens.ai.ui.theme.MutedText
 import com.fanlens.ai.ui.theme.OutlineVariantColor
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.SecondaryBlue
 import com.fanlens.ai.ui.theme.SecondaryFixedColor
 import com.fanlens.ai.ui.theme.SurfaceContainerHigh
+import com.fanlens.ai.ui.theme.SurfaceBg
 import com.fanlens.ai.ui.theme.SurfaceContainerLow
 
 /**
@@ -125,7 +128,7 @@ private fun CollapsedPet(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(Color(0xFFF3F4F6)),
+                .background(SurfaceContainerLow),
             contentAlignment = Alignment.Center,
         ) {
             GooglyAvatar(sizeDp = 40, reactive = animated, winking = true)
@@ -146,7 +149,7 @@ private fun CollapsedPet(
                 Text(
                     text = "(${state.matchOvers})",
                     fontSize = 9.sp,
-                    color = Color(0xFF6B7280),
+                    color = MutedText,
                 )
             }
             // Fantasy Standing below
@@ -244,7 +247,7 @@ private fun ExpandedPet(
                         Text(
                             text = freshnessText(state, showFreshness),
                             fontSize = 8.sp,
-                            color = Color(0xFF6B7280),
+                            color = MutedText,
                         )
                     }
                 }
@@ -289,7 +292,7 @@ private fun ExpandedPet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFFF3F4F6))
+                    .background(SurfaceContainerLow)
                     .border(1.dp, OutlineVariantColor.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
                     .padding(8.dp),
             ) {
@@ -304,18 +307,18 @@ private fun ExpandedPet(
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(text = state.matchScore, fontSize = 11.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                         }
-                        Text(text = state.matchOvers, fontSize = 9.sp, color = Color(0xFF6B7280))
+                        Text(text = state.matchOvers, fontSize = 9.sp, color = MutedText)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
                             modifier = Modifier
                                 .clip(PillShape)
-                                .background(Color(0xFFE53935))
+                                .background(BallRed)
                                 .padding(horizontal = 6.dp, vertical = 1.dp),
                         ) {
                             Text(text = "LIVE", fontSize = 8.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
-                        Text(text = state.matchStatus, fontSize = 7.sp, color = Color(0xFF6B7280))
+                        Text(text = state.matchStatus, fontSize = 7.sp, color = MutedText)
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -323,7 +326,7 @@ private fun ExpandedPet(
                             Spacer(modifier = Modifier.width(3.dp))
                             Text(text = "🇦🇺", fontSize = 12.sp)
                         }
-                        Text(text = "(20 ov)", fontSize = 9.sp, color = Color(0xFF6B7280))
+                        Text(text = "(20 ov)", fontSize = 9.sp, color = MutedText)
                     }
                 }
             }
@@ -349,7 +352,7 @@ private fun ExpandedPet(
                         Text(
                             text = "Load a demo match to see the pet in action, or open FanLens to pick a real league.",
                             fontSize = 9.sp,
-                            color = Color(0xFF6B7280),
+                            color = MutedText,
                         )
                     }
                 }
@@ -411,7 +414,7 @@ private fun ExpandedPet(
                                         fontWeight = FontWeight.Black,
                                         color = PrimaryBlack,
                                     )
-                                    Text(text = "points", fontSize = 8.sp, color = Color(0xFF6B7280))
+                                    Text(text = "points", fontSize = 8.sp, color = MutedText)
                                 }
                             }
                         }
@@ -430,7 +433,7 @@ private fun ExpandedPet(
                             Text(
                                 text = "Since last update: ${state.deltaVsPrevious}",
                                 fontSize = 9.sp,
-                                color = Color(0xFF6B7280),
+                                color = MutedText,
                             )
                         }
                     }
@@ -442,7 +445,7 @@ private fun ExpandedPet(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFF9FAFB))
+                            .background(SurfaceBg)
                             .border(1.dp, OutlineVariantColor.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
                             .padding(8.dp),
                     ) {
@@ -451,7 +454,7 @@ private fun ExpandedPet(
                                 text = "Chasing",
                                 fontSize = 8.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF6B7280),
+                                color = MutedText,
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Row(
@@ -467,7 +470,7 @@ private fun ExpandedPet(
                                 Text(
                                     text = state.leaderPoints,
                                     fontSize = 10.sp,
-                                    color = Color(0xFF6B7280),
+                                    color = MutedText,
                                 )
                             }
                         }

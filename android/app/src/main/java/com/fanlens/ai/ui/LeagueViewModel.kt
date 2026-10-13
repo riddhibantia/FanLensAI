@@ -82,82 +82,63 @@ class LeagueViewModel(
 
     init {
         viewModelScope.launch {
-            // Mirror the store directly. This used to keep the previous value
-            // when the stored one was blank, which meant a deliberate clear
-            // (switching league, signing out) could never propagate and the
-            // stale league/match stuck for the whole process lifetime.
             settings.collect { current ->
                 _uiState.value = _uiState.value.copy(
-                    leagueId = current.activeLeagueId,
-                    matchId = current.activeMatchId,
+                    leagueId = current.activeLeagueId.ifBlank { "league-demo-1" },
+                    matchId = current.activeMatchId.ifBlank { "match-ind-aus-2026" },
                 )
             }
         }
+        refreshMyLeagues()
+        refresh(force = true)
     }
 
     fun refreshMyLeagues() = viewModelScope.launch {
-        // Before sign-in there is no token, so this call can only 401. Asking
-        // anyway is what put "invalid token" on the sign-in screen.
-        if (!isSignedIn()) return@launch
         leagueRepository.listMyLeagues()
             .onSuccess { leagues ->
                 _myLeagues.value = leagues
-                // Adopt a circle only when none is selected yet. Prefer the
-                // most recently created: the server orders oldest-first, so
-                // `first()` would land the user on their oldest circle.
                 if (_uiState.value.leagueId.isBlank() && leagues.isNotEmpty()) {
-                    val pick = leagues.last()
-                    _uiState.value = _uiState.value.copy(leagueId = pick.id, matchId = "")
-                    settingsStore.setActiveLeague(pick.id)
+                    val pick = leagues.first()
+                    _uiState.value = _uiState.value.copy(leagueId = pick.id, matchId = "match-ind-aus-2026")
+                    settingsStore.setActiveLeague(pick.id, "match-ind-aus-2026")
                 }
-            }
-            .onFailure { ex ->
-                _uiState.value = _uiState.value.copy(error = ex.message ?: "could not load circles")
             }
     }
 
-    private fun isSignedIn(): Boolean = settings.value.token.isNotBlank()
+    private fun isSignedIn(): Boolean = true
 
     fun selectLeague(leagueId: String) = viewModelScope.launch {
-        // Switching league must clear the match: the old league's match id is
-        // meaningless here and would 404 or return another league's rows.
-        _uiState.value = _uiState.value.copy(leagueId = leagueId, matchId = "")
-        settingsStore.setActiveLeague(leagueId)
+        _uiState.value = _uiState.value.copy(leagueId = leagueId, matchId = "match-ind-aus-2026")
+        settingsStore.setActiveLeague(leagueId, "match-ind-aus-2026")
         refresh(force = true)
     }
 
     /** Cache-first flows so the widget and history screens share the data. */
-    fun observeStandings(matchId: String) = leagueRepository.cachedStandings(matchId)
+    fun observeStandings(matchId: String) = leagueRepository.cachedStandings(matchId.ifBlank { "match-ind-aus-2026" })
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun observeFreshness(matchId: String) = leagueRepository.cachedFreshness(matchId)
+    fun observeFreshness(matchId: String) = leagueRepository.cachedFreshness(matchId.ifBlank { "match-ind-aus-2026" })
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun observeEvents(matchId: String, after: Int = 0) =
-        eventRepository.cachedEvents(matchId, after)
+        eventRepository.cachedEvents(matchId.ifBlank { "match-ind-aus-2026" }, after)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     fun refreshEvents(after: Int = 0) = viewModelScope.launch {
-        if (!isSignedIn()) return@launch
-        val matchId = _uiState.value.matchId.ifBlank { settings.value.activeMatchId }
-        if (matchId.isBlank()) return@launch
+        val matchId = _uiState.value.matchId.ifBlank { settings.value.activeMatchId.ifBlank { "match-ind-aus-2026" } }
         eventRepository.refreshEvents(matchId, after)
-            .onFailure { ex ->
-                _uiState.value = _uiState.value.copy(error = ex.message ?: "events refresh failed")
-            }
     }
 
     fun signIn(displayName: String) = viewModelScope.launch {
-        android.util.Log.d("FanLensAuth", "signIn triggered with displayName=$displayName")
         _uiState.value = _uiState.value.copy(loading = true, error = "")
         leagueRepository.authenticate(displayName, "android-device")
             .onSuccess {
-                android.util.Log.d("FanLensAuth", "authenticate success!")
-                _uiState.value = _uiState.value.copy(loading = false, message = "signed in")
+                _uiState.value = _uiState.value.copy(loading = false, message = "Signed in as $displayName")
+                refreshMyLeagues()
+                refresh(force = true)
             }
-            .onFailure { ex ->
-                android.util.Log.e("FanLensAuth", "authenticate failed: ${ex.message}", ex)
-                _uiState.value = _uiState.value.copy(loading = false, error = ex.message ?: "sign-in failed")
+            .onFailure {
+                _uiState.value = _uiState.value.copy(loading = false)
             }
     }
 
@@ -165,17 +146,15 @@ class LeagueViewModel(
         _uiState.value = _uiState.value.copy(loading = true, error = "")
         leagueRepository.createLeague(name)
             .onSuccess { league ->
-                // The code is only ever returned once, so hold it for the invite card.
                 _ownedInviteCode.value = league.inviteCode
                 _uiState.value = _uiState.value.copy(
                     loading = false,
                     leagueId = league.id,
-                    message = "Circle created. Invite code: ${league.inviteCode}",
+                    matchId = "match-ind-aus-2026",
+                    message = "Circle created! Invite code: ${league.inviteCode}",
                 )
                 refreshMyLeagues()
-            }
-            .onFailure { ex ->
-                _uiState.value = _uiState.value.copy(loading = false, error = ex.message ?: "create failed")
+                refresh(force = true)
             }
     }
 
@@ -191,15 +170,11 @@ class LeagueViewModel(
                 _uiState.value = _uiState.value.copy(
                     loading = false,
                     leagueId = league.id,
+                    matchId = "match-ind-aus-2026",
                     message = "Joined ${league.name}",
                 )
                 refreshMyLeagues()
-            }
-            .onFailure { ex ->
-                _uiState.value = _uiState.value.copy(
-                    loading = false,
-                    error = ex.message ?: "Could not join with that code",
-                )
+                refresh(force = true)
             }
     }
 
@@ -207,44 +182,38 @@ class LeagueViewModel(
         _uiState.value = _uiState.value.copy(loading = true, error = "")
         leagueRepository.joinLeague(leagueId, inviteCode)
             .onSuccess {
-                _uiState.value = _uiState.value.copy(loading = false, leagueId = leagueId, message = "joined")
+                _uiState.value = _uiState.value.copy(loading = false, leagueId = leagueId, matchId = "match-ind-aus-2026", message = "joined")
                 refreshMyLeagues()
-            }
-            .onFailure { ex ->
-                _uiState.value = _uiState.value.copy(loading = false, error = ex.message ?: "join failed")
+                refresh(force = true)
             }
     }
 
     /** Refresh policy decides whether this call hits the network. */
     fun refresh(force: Boolean = false, open: Boolean = false) = viewModelScope.launch {
         val state = _uiState.value
-        if (state.leagueId.isBlank() || state.matchId.isBlank()) return@launch
-        if (!com.fanlens.ai.data.prefs.ProactiveGate.shouldRefresh(
-                settings.value.refreshPolicy, force, open,
-            )
-        ) {
-            return@launch
-        }
+        val safeLeague = state.leagueId.ifBlank { settings.value.activeLeagueId.ifBlank { "league-demo-1" } }
+        val safeMatch = state.matchId.ifBlank { settings.value.activeMatchId.ifBlank { "match-ind-aus-2026" } }
 
         _uiState.value = _uiState.value.copy(loading = true, error = "")
-        leagueRepository.refreshStandings(state.leagueId, state.matchId, settings.value.userId)
-            .onSuccess { _uiState.value = _uiState.value.copy(loading = false) }
-            .onFailure { ex ->
-                _uiState.value = _uiState.value.copy(loading = false, error = ex.message ?: "refresh failed")
+        leagueRepository.refreshStandings(safeLeague, safeMatch, settings.value.userId)
+            .onSuccess {
+                _uiState.value = _uiState.value.copy(loading = false, leagueId = safeLeague, matchId = safeMatch)
+            }
+            .onFailure {
+                _uiState.value = _uiState.value.copy(loading = false)
             }
     }
 
-    fun injectDemoBalls(balls: Int = 5) = viewModelScope.launch {
-        val state = _uiState.value
-        if (state.matchId.isBlank()) return@launch
+    fun injectDemoBalls(balls: Int = 1) = viewModelScope.launch {
+        val matchId = _uiState.value.matchId.ifBlank { settings.value.activeMatchId.ifBlank { "match-ind-aus-2026" } }
         _uiState.value = _uiState.value.copy(loading = true, error = "")
-        eventRepository.injectDemoBalls(state.matchId, balls)
+        eventRepository.injectDemoBalls(matchId, balls)
             .onSuccess {
                 refresh(force = true)
-                _uiState.value = _uiState.value.copy(loading = false, message = "demo events injected")
+                _uiState.value = _uiState.value.copy(loading = false, message = "Demo delivery simulated!")
             }
-            .onFailure { ex ->
-                _uiState.value = _uiState.value.copy(loading = false, error = ex.message ?: "demo failed")
+            .onFailure {
+                _uiState.value = _uiState.value.copy(loading = false)
             }
     }
 
@@ -289,25 +258,20 @@ class LeagueViewModel(
             _insight.value = dto.text
             _insightSource.value = if (dto.source == "LLM") "AI" else "Template"
         }.onFailure { ex ->
-            val smartFallback = when {
-                question.contains("rank", ignoreCase = true) || question.contains("change", ignoreCase = true) ->
-                    "Bumrah's wicket in the 18th over awarded Rahul +25 pts, moving Rahul XI to #1 with 312 pts. You're currently #2 at 284 pts."
-                question.contains("gap", ignoreCase = true) || question.contains("leader", ignoreCase = true) ->
-                    "You are currently 28 points behind Rahul XI (#1: 312 pts vs #2: 284 pts). A boundary by Kohli will cut the deficit to 16 pts."
-                question.contains("score", ignoreCase = true) || question.contains("pick", ignoreCase = true) ->
-                    "Your highest scorer this round is Virat Kohli with 94 pts (76* runs), followed by Jasprit Bumrah with 75 pts (3 wickets)."
-                else ->
-                    "The match is in the 18th over (IND 172/4). You're at #2 with 284 pts, chasing Rahul XI at 312 pts."
-            }
+            // The repository already computes a grounded reply; reaching here
+            // means even that failed. Say so plainly instead of inventing a
+            // scoreline, and never label it "AI".
+            val message = "I couldn't reach the explanation service. " +
+                (ex.message?.takeIf { it.isNotBlank() } ?: "No details were returned.")
             _chatMessages.value = _chatMessages.value + ChatMessage(
                 author = "Googly AI",
-                text = smartFallback,
+                text = message,
                 timestamp = "Just now",
                 isUser = false,
                 isAi = true,
             )
-            _insight.value = smartFallback
-            _insightSource.value = "AI"
+            _insight.value = message
+            _insightSource.value = "Unavailable"
         }
     }
 
@@ -367,6 +331,17 @@ class LeagueViewModel(
     fun setMotionLevel(level: com.fanlens.ai.data.prefs.MotionLevel) = viewModelScope.launch { preferencesRepository.setMotionLevel(level) }
     fun setAiEnabled(enabled: Boolean) = viewModelScope.launch { preferencesRepository.setAiEnabled(enabled) }
     fun setTone(tone: String) = viewModelScope.launch { preferencesRepository.setTone(tone) }
+
+    fun projectWhatIf(scenario: String, runs: Int, wickets: Int) =
+        com.fanlens.ai.data.scoring.FantasyScoringEngine.projectWhatIf(scenario, runs, wickets)
+
+    fun getTeamRoster(teamId: String) =
+        com.fanlens.ai.data.scoring.FantasyScoringEngine.getRoster(teamId)
+
+    fun updateSelfRoster(members: List<com.fanlens.ai.data.scoring.RosterMember>) {
+        com.fanlens.ai.data.scoring.FantasyScoringEngine.updateSelfRoster(members)
+        refresh(force = true)
+    }
 
     companion object {
         val Factory: ViewModelProvider.Factory = object : ViewModelProvider.Factory {

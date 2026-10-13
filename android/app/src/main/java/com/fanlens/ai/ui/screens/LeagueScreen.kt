@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,8 +34,10 @@ fun LeagueScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    var currentTab by remember { mutableIntStateOf(0) }
-    var showCircleHub by remember { mutableStateOf(false) }
+    // rememberSaveable: the selected tab survives rotation and process death.
+    // Previously this was a plain remember, so rotating reset the user to Matches.
+    var currentTab by rememberSaveable { mutableIntStateOf(0) }
+    var showCircleHub by rememberSaveable { mutableStateOf(false) }
 
     LaunchedEffect(uiState.error) {
         if (uiState.error.isNotBlank()) {
@@ -63,15 +66,18 @@ fun LeagueScreen(
                 .fillMaxSize()
                 .padding(paddingValues),
         ) {
-            // Tab content
+            // Tab content.
+            //
+            // This is a `when` rather than a NavHost on purpose: the tabs are
+            // siblings, not a stack, and the screens share one ViewModel. Each
+            // branch still recomposes from scratch on switch, so scroll
+            // position is not retained between tabs.
             when (currentTab) {
                 0 -> MatchesScreen(
                     viewModel = viewModel,
                     onNavigateToLeagues = { currentTab = 1 },
                     onNavigateToGooglyAi = { currentTab = 2 },
                     onOpenCircleHub = { showCircleHub = true },
-                    onOpenRoster = onOpenRoster,
-                    onOpenSettings = onOpenSettings,
                 )
                 1 -> LeaguesScreen(
                     viewModel = viewModel,
@@ -81,16 +87,19 @@ fun LeagueScreen(
                 2 -> GooglyAiScreen(
                     viewModel = viewModel,
                 )
+                // Tab 3 is Settings & Companion. CompanionScreen was previously
+                // implemented but never reachable from the bottom bar.
                 3 -> CompanionScreen(
                     viewModel = viewModel,
                     onGrantOverlayPermission = onGrantOverlayPermission,
+                    onOpenFullSettings = onOpenSettings,
                 )
             }
 
-            // In-app mascot shortcut to open Googly AI from Matches, Leagues, or Settings.
-            // Hide it when the user is ALREADY inside the Googly AI tab.
+            // Single unified mascot: suppress in-app floating mascot when system overlay is active
+            // so there is only ever ONE mascot on screen. Acts as in-app fallback when overlay is disabled.
             val settings by viewModel.settings.collectAsState()
-            if (currentTab != 2) {
+            if (currentTab != 2 && !settings.overlayEnabled) {
                 FloatingCompanionWidget(
                     onClick = {
                         currentTab = 2 // Opens Googly AI Lab

@@ -1,9 +1,13 @@
 package com.fanlens.ai.ui.screens
 
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.heightIn
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -71,16 +75,21 @@ import com.fanlens.ai.ui.ChatMessage
 import com.fanlens.ai.ui.GooglyAvatar
 import com.fanlens.ai.ui.LiveStatusBadge
 import com.fanlens.ai.ui.LeagueViewModel
+import com.fanlens.ai.ui.TabContentBottomPadding
 import com.fanlens.ai.ui.theme.AmberTrophy
 import com.fanlens.ai.ui.theme.AmberTrophyBg
 import com.fanlens.ai.ui.theme.EmeraldLive
+import com.fanlens.ai.ui.theme.EmeraldLiveText
 import com.fanlens.ai.ui.theme.EmeraldLiveBg
 import com.fanlens.ai.ui.theme.ErrorRed
+import com.fanlens.ai.ui.theme.MinTouchTarget
 import com.fanlens.ai.ui.theme.OutlineVariantColor
+import com.fanlens.ai.ui.theme.MutedText
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.PrimaryContainerColor
 import com.fanlens.ai.ui.theme.SecondaryBlue
+import com.fanlens.ai.ui.theme.SecondaryBlueText
 import com.fanlens.ai.ui.theme.SecondaryFixedColor
 import com.fanlens.ai.ui.theme.SurfaceBg
 import com.fanlens.ai.ui.theme.SurfaceCard
@@ -121,7 +130,7 @@ fun LeaguesScreen(
             .fillMaxSize()
             .background(SurfaceBg)
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp),
+            .padding(bottom = TabContentBottomPadding),
     ) {
         // Top App Bar
         LeagueHeaderBar(
@@ -259,43 +268,61 @@ private fun CircleSwitcherBar(
     onSelectCircle: (String) -> Unit,
     onCreateOrJoin: () -> Unit,
 ) {
+    // Horizontal scroll, not `take(2)`: a user in more than two circles could
+    // not reach the rest. Each chip keeps an intrinsic width and the row pans.
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        leagues.take(2).forEach { league ->
-            val isSel = league.id == activeLeagueId
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (isSel) PrimaryBlack else SurfaceCard)
-                    .border(
-                        1.dp,
-                        if (isSel) PrimaryBlack else OutlineVariantColor.copy(alpha = 0.4f),
-                        RoundedCornerShape(8.dp),
-                    )
-                    .clickable { onSelectCircle(league.id) }
-                    .padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "${league.name} (${league.memberCount})",
-                    fontSize = 11.sp,
-                    fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
-                    color = if (isSel) Color.White else PrimaryBlack,
-                    maxLines = 1,
-                )
-            }
-        }
-        Box(
+        Row(
             modifier = Modifier
                 .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            leagues.forEach { league ->
+                val isSel = league.id == activeLeagueId
+                Box(
+                    modifier = Modifier
+                        .heightIn(min = MinTouchTarget)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSel) PrimaryBlack else SurfaceCard)
+                        .border(
+                            1.dp,
+                            if (isSel) PrimaryBlack else OutlineVariantColor.copy(alpha = 0.4f),
+                            RoundedCornerShape(8.dp),
+                        )
+                        .selectable(
+                            selected = isSel,
+                            role = Role.Tab,
+                            onClick = { onSelectCircle(league.id) },
+                        )
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "${league.name} (${league.memberCount})",
+                        fontSize = 11.sp,
+                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                        color = if (isSel) Color.White else PrimaryBlack,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.width(6.dp))
+        Box(
+            modifier = Modifier
+                .heightIn(min = MinTouchTarget)
                 .clip(RoundedCornerShape(8.dp))
                 .background(SurfaceCard)
                 .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                .clickable(onClick = onCreateOrJoin)
-                .padding(vertical = 8.dp),
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = "Create or join a circle",
+                    onClick = onCreateOrJoin,
+                )
+                .padding(horizontal = 12.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text(
@@ -338,11 +365,11 @@ private fun CircleInviteCodeCard(
                         .background(SecondaryFixedColor.copy(alpha = 0.6f)),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(imageVector = Icons.Default.Share, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.Default.Share, contentDescription = null, tint = SecondaryBlueText, modifier = Modifier.size(18.dp))
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text(text = "CIRCLE INVITE CODE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                    Text(text = "CIRCLE INVITE CODE", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MutedText)
                     Text(
                         text = when {
                             hasCode -> inviteCode
@@ -358,12 +385,20 @@ private fun CircleInviteCodeCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                // heightIn(min = 48.dp) keeps the pill's compact look while
+                // giving it a full-size touch target.
                 Box(
                     modifier = Modifier
+                        .heightIn(min = 48.dp)
                         .clip(PillShape)
                         .background(SurfaceContainerHigh)
-                        .clickable(onClick = onCopy)
-                        .padding(horizontal = 8.dp, vertical = 6.dp),
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Copy invite code",
+                            onClick = onCopy,
+                        )
+                        .padding(horizontal = 10.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.ContentCopy, contentDescription = null, tint = PrimaryBlack, modifier = Modifier.size(12.dp))
@@ -373,10 +408,16 @@ private fun CircleInviteCodeCard(
                 }
                 Box(
                     modifier = Modifier
+                        .heightIn(min = 48.dp)
                         .clip(PillShape)
                         .background(SecondaryBlue)
-                        .clickable(onClick = onShareWhatsApp)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = if (hasCode) "Share invite" else "Share standings",
+                            onClick = onShareWhatsApp,
+                        )
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
@@ -406,66 +447,86 @@ private fun LeagueHeaderBar(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(SurfaceContainerLow)
-            .border(1.dp, OutlineVariantColor.copy(alpha = 0.35f))
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .background(SurfaceCard)
+            .border(1.dp, OutlineVariantColor.copy(alpha = 0.25f))
+            .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(
-                onClick = onBack,
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .heightIn(min = MinTouchTarget)
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = "Back to matches",
+                    onClick = onBack,
+                ),
+        ) {
+            Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(38.dp)
                     .clip(CircleShape)
                     .background(SurfaceCard)
-                    .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), CircleShape),
+                    .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), CircleShape)
+                    .padding(2.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = "Back",
-                    tint = PrimaryBlack,
-                    modifier = Modifier.size(18.dp),
-                )
+                GooglyAvatar(sizeDp = 34, reactive = false)
             }
             Spacer(modifier = Modifier.width(10.dp))
             Column {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.MilitaryTech,
-                        contentDescription = null,
-                        tint = SecondaryBlue,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = leagueName,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
+                        text = leagueName.ifBlank { "Sunday Smashers" },
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black,
                         color = PrimaryBlack,
-                        maxLines = 1,
+                        letterSpacing = (-0.3).sp,
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(SecondaryBlue)
+                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                    ) {
+                        Text(
+                            text = "CIRCLE",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                        )
+                    }
                 }
                 Text(
                     text = if (isWrap) "Standings summary" else subtitle,
-                    fontSize = 10.sp,
-                    color = Color(0xFF6B7280),
+                    fontSize = 11.sp,
+                    color = MutedText,
+                    fontWeight = FontWeight.Medium,
                 )
             }
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = onShare, modifier = Modifier.size(30.dp)) {
+            // 48dp touch target; the icon itself stays 16dp.
+            IconButton(onClick = onShare, modifier = Modifier.size(48.dp)) {
                 Icon(imageVector = Icons.Default.Share, contentDescription = "Share", tint = PrimaryBlack, modifier = Modifier.size(16.dp))
             }
             Spacer(modifier = Modifier.width(4.dp))
             Box(
                 modifier = Modifier
+                    .heightIn(min = MinTouchTarget)
                     .clip(PillShape)
                     .background(SurfaceCard)
                     .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), PillShape)
-                    .clickable(onClick = onToggleWrap)
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = if (isWrap) "View live standings" else "Wrap up the circle",
+                        onClick = onToggleWrap,
+                    )
+                    .padding(horizontal = 8.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = if (isWrap) "View Live" else "Wrap 🏆",
@@ -511,7 +572,7 @@ private fun CircleOverviewPotBanner(
                                 text = if (league?.isOwner == true) "OWNER" else "MEMBER",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = SecondaryBlue,
+                                color = SecondaryBlueText,
                             )
                         }
                     }
@@ -531,7 +592,7 @@ private fun CircleOverviewPotBanner(
                         .padding(2.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    GooglyAvatar(sizeDp = 42, reactive = true)
+                    GooglyAvatar(sizeDp = 42, reactive = false)
                 }
             }
 
@@ -574,7 +635,7 @@ private fun CircleStatCell(
             .background(SurfaceContainerLow)
             .padding(8.dp),
     ) {
-        Text(text = label, fontSize = 10.sp, color = Color(0xFF6B7280))
+        Text(text = label, fontSize = 10.sp, color = MutedText)
         Text(text = value, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
     }
 }
@@ -623,7 +684,7 @@ private fun FullStandingsSection(
                             "Ranks appear once a round is scored."
                         },
                         fontSize = 11.sp,
-                        color = Color(0xFF6B7280),
+                        color = MutedText,
                     )
                 }
             }
@@ -644,7 +705,7 @@ private fun FullStandingsSection(
                     } else {
                         "−${row.gapToLeader} behind"
                     },
-                    deltaColor = if (row.isSelf) SecondaryBlue else Color(0xFF6B7280),
+                    deltaColor = if (row.isSelf) SecondaryBlueText else MutedText,
                     summary = "Gap to leader: ${row.gapToLeader} pts",
                     isExpanded = expandedMember == key,
                     onToggle = { expandedMember = if (expandedMember == key) null else key },
@@ -681,7 +742,11 @@ private fun ExpandableMemberCard(
                 if (isLeader) SecondaryBlue else OutlineVariantColor.copy(alpha = 0.35f),
                 RoundedCornerShape(12.dp),
             )
-            .clickable(onClick = onToggle)
+            .clickable(
+                role = Role.Button,
+                onClickLabel = if (isExpanded) "Hide team breakdown" else "Show team breakdown",
+                onClick = onToggle,
+            )
             .padding(12.dp),
     ) {
         Column {
@@ -717,11 +782,11 @@ private fun ExpandableMemberCard(
                                         .background(SecondaryFixedColor)
                                         .padding(horizontal = 4.dp, vertical = 1.dp),
                                 ) {
-                                    Text(text = tag, fontSize = 8.sp, fontWeight = FontWeight.Black, color = SecondaryBlue)
+                                    Text(text = tag, fontSize = 8.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
                                 }
                             }
                         }
-                        Text(text = summary, fontSize = 10.sp, color = Color(0xFF6B7280))
+                        Text(text = summary, fontSize = 10.sp, color = MutedText)
                     }
                 }
 
@@ -734,7 +799,7 @@ private fun ExpandableMemberCard(
                     Icon(
                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                         contentDescription = null,
-                        tint = Color(0xFF6B7280),
+                        tint = MutedText,
                         modifier = Modifier.size(18.dp),
                     )
                 }
@@ -771,7 +836,7 @@ private fun CircleLiveBanterCard(
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(text = "CIRCLE LIVE BANTER", fontSize = 11.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                 }
-                Text(text = "5 Friends Online", fontSize = 10.sp, color = EmeraldLive, fontWeight = FontWeight.Bold)
+                Text(text = "5 Friends Online", fontSize = 10.sp, color = EmeraldLiveText, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(10.dp))
@@ -790,9 +855,9 @@ private fun CircleLiveBanterCard(
                     ) {
                         Column {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(12.dp))
+                                Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = SecondaryBlueText, modifier = Modifier.size(12.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = msg.author, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SecondaryBlue)
+                                Text(text = msg.author, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(text = msg.text, fontSize = 11.sp, color = PrimaryBlack, lineHeight = 15.sp)
@@ -813,8 +878,8 @@ private fun CircleLiveBanterCard(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                Text(text = msg.author, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SecondaryBlue)
-                                Text(text = msg.timestamp, fontSize = 9.sp, color = Color(0xFF6B7280))
+                                Text(text = msg.author, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
+                                Text(text = msg.timestamp, fontSize = 9.sp, color = MutedText)
                             }
                             Text(text = msg.text, fontSize = 11.sp, color = PrimaryBlack)
                         }
@@ -834,7 +899,7 @@ private fun CircleLiveBanterCard(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                             ) {
                                 Text(text = msg.author, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
-                                Text(text = msg.timestamp, fontSize = 9.sp, color = Color(0xFF6B7280))
+                                Text(text = msg.timestamp, fontSize = 9.sp, color = MutedText)
                             }
                             Text(text = msg.text, fontSize = 11.sp, color = PrimaryBlack)
                         }
@@ -863,14 +928,20 @@ private fun CircleLiveBanterCard(
                     singleLine = true,
                 )
                 Spacer(modifier = Modifier.width(6.dp))
+                // 48dp touch target; the visible disc stays 40dp.
                 IconButton(
                     onClick = onSend,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(PrimaryContainerColor),
+                    modifier = Modifier.size(MinTouchTarget),
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryContainerColor),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
         }
@@ -926,7 +997,7 @@ private fun PostMatchWrapSection(
                         .padding(4.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    GooglyAvatar(sizeDp = 64, reactive = true, winking = true)
+                    GooglyAvatar(sizeDp = 64, reactive = false, winking = true)
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
@@ -941,7 +1012,7 @@ private fun PostMatchWrapSection(
                     Text(
                         text = "Standings appear once events are scored.",
                         fontSize = 12.sp,
-                        color = Color(0xFF6B7280),
+                        color = MutedText,
                     )
                 } else {
                     Text(
@@ -955,7 +1026,7 @@ private fun PostMatchWrapSection(
                             (selfRow?.let { " • You are #${it.rank}" } ?: ""),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = SecondaryBlue,
+                        color = SecondaryBlueText,
                     )
                 }
 
@@ -995,8 +1066,8 @@ private fun PostMatchWrapSection(
                                     Text(
                                         text = medal,
                                         fontSize = 9.sp,
-                                        fontWeight = FontWeight.Black,
-                                        color = if (isFirst) AmberTrophy else Color(0xFF6B7280),
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (isFirst) AmberTrophy else MutedText,
                                     )
                                     Text(
                                         text = row.teamName,
@@ -1024,10 +1095,14 @@ private fun PostMatchWrapSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = MinTouchTarget)
                 .clip(PillShape)
                 .background(PrimaryBlack)
-                .clickable(onClick = onShare)
-                .padding(vertical = 12.dp),
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = "Share circle summary",
+                    onClick = onShare,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1042,11 +1117,15 @@ private fun PostMatchWrapSection(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .heightIn(min = MinTouchTarget)
                 .clip(PillShape)
                 .background(SurfaceContainerHigh)
                 .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), PillShape)
-                .clickable(onClick = onStartNew)
-                .padding(vertical = 12.dp),
+                .clickable(
+                    role = Role.Button,
+                    onClickLabel = "Back to live circle",
+                    onClick = onStartNew,
+                ),
             contentAlignment = Alignment.Center,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {

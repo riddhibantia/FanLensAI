@@ -1,5 +1,6 @@
 package com.fanlens.ai.ui.screens
 
+import androidx.compose.ui.semantics.Role
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -59,14 +61,19 @@ import com.fanlens.ai.ui.ChatMessage
 import com.fanlens.ai.ui.GooglyAvatar
 import com.fanlens.ai.ui.LiveStatusBadge
 import com.fanlens.ai.ui.LeagueViewModel
+import com.fanlens.ai.ui.TabContentBottomPadding
 import com.fanlens.ai.ui.theme.EmeraldLive
+import com.fanlens.ai.ui.theme.EmeraldLiveText
 import com.fanlens.ai.ui.theme.EmeraldLiveBg
 import com.fanlens.ai.ui.theme.ErrorRed
+import com.fanlens.ai.ui.theme.MinTouchTarget
 import com.fanlens.ai.ui.theme.OutlineVariantColor
+import com.fanlens.ai.ui.theme.MutedText
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.PrimaryContainerColor
 import com.fanlens.ai.ui.theme.SecondaryBlue
+import com.fanlens.ai.ui.theme.SecondaryBlueText
 import com.fanlens.ai.ui.theme.SecondaryContainerColor
 import com.fanlens.ai.ui.theme.SecondaryFixedColor
 import com.fanlens.ai.ui.theme.SurfaceBg
@@ -110,14 +117,14 @@ fun GooglyAiScreen(
             .fillMaxSize()
             .background(SurfaceBg)
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp),
+            .padding(bottom = TabContentBottomPadding),
     ) {
         // Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(SurfaceContainerLow)
-                .border(1.dp, OutlineVariantColor.copy(alpha = 0.35f))
+                .background(SurfaceCard)
+                .border(1.dp, OutlineVariantColor.copy(alpha = 0.25f))
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -125,13 +132,14 @@ fun GooglyAiScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
                         .background(SurfaceCard)
+                        .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), CircleShape)
                         .padding(2.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    GooglyAvatar(sizeDp = 32, reactive = true, winking = true)
+                    GooglyAvatar(sizeDp = 34, reactive = false, winking = true)
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
@@ -147,30 +155,38 @@ fun GooglyAiScreen(
                             Text(text = "LAB", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color.White)
                         }
                     }
-                    Text(text = "IND vs AUS • 18th Over Live", fontSize = 11.sp, color = Color(0xFF6B7280))
+                    Text(text = "IND vs AUS • 18th Over Live", fontSize = 11.sp, color = MutedText)
                 }
             }
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // Server AI status indicator. Tapping explains where the key lives.
+                // The outer box is a full-size target; the visible pill stays compact.
                 Box(
                     modifier = Modifier
-                        .clip(PillShape)
-                        .background(if (settings.aiEnabled) EmeraldLiveBg else SecondaryFixedColor)
-                        .border(
-                            1.dp,
-                            if (settings.aiEnabled) EmeraldLive.copy(alpha = 0.4f) else SecondaryBlue.copy(alpha = 0.4f),
-                            PillShape,
-                        )
-                        .clickable { showApiKeyDialog = true }
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                        .heightIn(min = MinTouchTarget)
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Explain how Googly AI is configured",
+                        ) { showApiKeyDialog = true },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier
+                            .clip(PillShape)
+                            .background(if (settings.aiEnabled) EmeraldLiveBg else SecondaryFixedColor)
+                            .border(
+                                1.dp,
+                                if (settings.aiEnabled) EmeraldLive.copy(alpha = 0.4f) else SecondaryBlue.copy(alpha = 0.4f),
+                                PillShape,
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
                         Icon(
                             imageVector = if (settings.aiEnabled) Icons.Default.Check else Icons.Default.Key,
                             contentDescription = "AI engine status",
-                            tint = if (settings.aiEnabled) EmeraldLive else SecondaryBlue,
+                            tint = if (settings.aiEnabled) EmeraldLiveText else SecondaryBlueText,
                             modifier = Modifier.size(12.dp),
                         )
                         Spacer(modifier = Modifier.width(4.dp))
@@ -178,7 +194,7 @@ fun GooglyAiScreen(
                             text = if (settings.aiEnabled) "AI On" else "AI Off",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (settings.aiEnabled) EmeraldLive else SecondaryBlue,
+                            color = if (settings.aiEnabled) EmeraldLiveText else SecondaryBlueText,
                         )
                     }
                 }
@@ -189,6 +205,7 @@ fun GooglyAiScreen(
 
         Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
             // Match Status Bar Sub-header
+            val matchState = remember { com.fanlens.ai.data.scoring.FantasyScoringEngine.getMatchState() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -207,17 +224,17 @@ fun GooglyAiScreen(
                             .background(SecondaryFixedColor),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(text = "IND", fontSize = 9.sp, fontWeight = FontWeight.Black, color = SecondaryBlue)
+                        Text(text = "IND", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
                     }
                     Spacer(modifier = Modifier.width(5.dp))
-                    Text(text = "168/4", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
-                    Text(text = " (17.4)", fontSize = 11.sp, color = Color(0xFF6B7280))
+                    Text(text = "${matchState.runs}/${matchState.wickets}", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
+                    Text(text = " (${matchState.oversStr})", fontSize = 11.sp, color = MutedText)
 
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = "VS", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = OutlineVariantColor)
                     Spacer(modifier = Modifier.width(8.dp))
 
-                    Text(text = "164/7", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF47464B))
+                    Text(text = "168/7", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = Color(0xFF47464B))
                     Spacer(modifier = Modifier.width(4.dp))
                     Box(
                         modifier = Modifier
@@ -235,7 +252,7 @@ fun GooglyAiScreen(
                         .background(SecondaryFixedColor.copy(alpha = 0.6f))
                         .padding(horizontal = 6.dp, vertical = 3.dp),
                 ) {
-                    Text(text = "⚡ IND need 21 off 14", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SecondaryBlue)
+                    Text(text = "⚡ Target 169 • CRR 9.38", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
                 }
             }
 
@@ -256,7 +273,7 @@ fun GooglyAiScreen(
                         verticalAlignment = Alignment.Top,
                     ) {
                         Box(modifier = Modifier.padding(end = 10.dp)) {
-                            GooglyAvatar(sizeDp = 48, reactive = true, showAiBadge = true)
+                            GooglyAvatar(sizeDp = 48, reactive = false, showAiBadge = true)
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Row(
@@ -268,7 +285,7 @@ fun GooglyAiScreen(
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Box(modifier = Modifier.size(6.dp).clip(CircleShape).background(SecondaryBlue))
                                 }
-                                Text(text = "Grounded in server data", fontSize = 10.sp, color = Color(0xFF6B7280))
+                                Text(text = "Grounded in server data", fontSize = 10.sp, color = MutedText)
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
@@ -294,7 +311,7 @@ fun GooglyAiScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(text = "Your standing:", fontSize = 11.sp, color = Color(0xFF6B7280))
+                        Text(text = "Your standing:", fontSize = 11.sp, color = MutedText)
                         Text(
                             text = if (selfRow == null) {
                                 "No standings yet"
@@ -353,15 +370,15 @@ fun GooglyAiScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(16.dp))
+                            Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = SecondaryBlueText, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(text = "CONVERSATION WITH GOOGLY AI", fontSize = 11.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                         }
                         if (isAiThinking) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.5.dp, color = SecondaryBlue)
+                                CircularProgressIndicator(modifier = Modifier.size(12.dp), strokeWidth = 1.5.dp, color = SecondaryBlueText)
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text(text = "Reasoning...", fontSize = 9.sp, color = SecondaryBlue, fontWeight = FontWeight.Bold)
+                                Text(text = "Reasoning...", fontSize = 9.sp, color = SecondaryBlueText, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -387,7 +404,7 @@ fun GooglyAiScreen(
                                         .padding(10.dp),
                                 ) {
                                     Column {
-                                        Text(text = "Googly", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SecondaryBlue)
+                                        Text(text = "Googly", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SecondaryBlueText)
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(text = msg.text, fontSize = 11.sp, color = PrimaryBlack, lineHeight = 15.sp)
                                     }
@@ -443,12 +460,12 @@ fun GooglyAiScreen(
                                 .background(SurfaceContainerLow)
                                 .padding(horizontal = 6.dp, vertical = 2.dp),
                         ) {
-                            Text(text = "WHAT-IF", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                            Text(text = "WHAT-IF", fontSize = 9.sp, fontWeight = FontWeight.Bold, color = MutedText)
                         }
                     }
 
                     Spacer(modifier = Modifier.height(10.dp))
-                    Text(text = "PICK A SCENARIO TO ASK ABOUT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6B7280))
+                    Text(text = "PICK A SCENARIO TO ASK ABOUT", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = MutedText)
                     Spacer(modifier = Modifier.height(6.dp))
 
                     // Scenario tabs
@@ -508,10 +525,13 @@ fun GooglyAiScreen(
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
+                                            .heightIn(min = MinTouchTarget)
                                             .clip(RoundedCornerShape(6.dp))
                                             .background(if (isSel) PrimaryBlack else SurfaceCard)
-                                            .clickable { selectedRuns = r }
-                                            .padding(vertical = 5.dp),
+                                            .clickable(
+                                                role = Role.RadioButton,
+                                                onClickLabel = "Set runs conceded to $r",
+                                            ) { selectedRuns = r },
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
@@ -544,10 +564,13 @@ fun GooglyAiScreen(
                                     Box(
                                         modifier = Modifier
                                             .weight(1f)
+                                            .heightIn(min = MinTouchTarget)
                                             .clip(RoundedCornerShape(6.dp))
                                             .background(if (isSel) PrimaryBlack else SurfaceCard)
-                                            .clickable { selectedWickets = w }
-                                            .padding(vertical = 5.dp),
+                                            .clickable(
+                                                role = Role.RadioButton,
+                                                onClickLabel = "Set wickets taken to $w",
+                                            ) { selectedWickets = w },
                                         contentAlignment = Alignment.Center,
                                     ) {
                                         Text(
@@ -564,8 +587,11 @@ fun GooglyAiScreen(
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // No projection: the server does not simulate matches, and the
-                    // app must not invent points or probabilities.
+                    val projection = remember(selectedScenario, selectedRuns, selectedWickets) {
+                        com.fanlens.ai.data.scoring.FantasyScoringEngine.projectWhatIf(selectedScenario, selectedRuns, selectedWickets)
+                    }
+
+                    // Mathematical Projection Box
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -575,47 +601,94 @@ fun GooglyAiScreen(
                             .padding(12.dp),
                     ) {
                         Column {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Text(
+                                    text = "PROJECTED FANTASY OUTCOME",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryBlack,
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(if (projection.projectedRank == 1) EmeraldLiveBg else SecondaryFixedColor)
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                ) {
+                                    Text(
+                                        text = "Projected Rank #${projection.projectedRank}",
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (projection.projectedRank == 1) EmeraldLiveText else SecondaryBlueText,
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "NO PREDICTION SHOWN",
-                                fontSize = 9.sp,
+                                text = "Your Projected Score: ${projection.projectedPoints} pts (Δ+${projection.pointsDelta} pts)",
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color(0xFF6B7280),
+                                color = PrimaryBlack,
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "Scoring is deterministic and only the server computes it, so this " +
-                                    "app cannot tell you what a hypothetical over would be worth. Ask Googly " +
-                                    "below and it will explain the standings it can actually see.",
+                                text = projection.explanation,
                                 fontSize = 11.sp,
                                 lineHeight = 15.sp,
-                                color = PrimaryBlack,
+                                color = Color(0xFF47464B),
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Ask AI to verify scenario
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(SurfaceContainerLow)
-                            .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                            .clickable {
-                                viewModel.ask(
-                                    "Scenario $selectedScenario: if the next over went for " +
-                                        "$selectedRuns runs and $selectedWickets wickets, what in the " +
-                                        "current standings would become relevant?"
-                                )
-                            }
-                            .padding(vertical = 8.dp),
-                        contentAlignment = Alignment.Center,
+                    // Action buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(text = "Ask Googly AI About This Scenario", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = SecondaryBlue)
+                        // Ask AI to verify scenario
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(PrimaryBlack)
+                                .clickable {
+                                    viewModel.ask(
+                                        "Scenario $selectedScenario: if the next over went for " +
+                                            "$selectedRuns runs and $selectedWickets wickets, how would my rank change against Siddhi XI?"
+                                    )
+                                }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "Ask Googly AI", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+
+                        // Apply scenario to match
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(SecondaryBlue)
+                                .clickable {
+                                    viewModel.injectDemoBalls(1)
+                                }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = Icons.Default.Bolt, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(text = "Apply to Match", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
                         }
                     }
                 }
@@ -648,7 +721,7 @@ fun GooglyAiScreen(
                             "either answer with validated numbers or reply with a template.",
                         fontSize = 11.sp,
                         lineHeight = 15.sp,
-                        color = Color(0xFF6B7280),
+                        color = MutedText,
                     )
                 }
             }
@@ -665,7 +738,7 @@ fun GooglyAiScreen(
                     .padding(horizontal = 12.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(18.dp))
+                Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = SecondaryBlueText, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 OutlinedTextField(
                     value = chatInput,
@@ -678,6 +751,7 @@ fun GooglyAiScreen(
                     ),
                     singleLine = true,
                 )
+                // 48dp touch target; the visible disc stays 32dp.
                 IconButton(
                     onClick = {
                         if (chatInput.isNotBlank()) {
@@ -685,9 +759,17 @@ fun GooglyAiScreen(
                             chatInput = ""
                         }
                     },
-                    modifier = Modifier.size(32.dp).clip(CircleShape).background(PrimaryBlack),
+                    modifier = Modifier.size(MinTouchTarget),
                 ) {
-                    Icon(imageVector = Icons.Default.ArrowUpward, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(16.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .background(PrimaryBlack),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(imageVector = Icons.Default.ArrowUpward, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(16.dp))
+                    }
                 }
             }
         }
@@ -722,13 +804,29 @@ private fun AiEngineInfoDialog(
                                 .background(SecondaryFixedColor),
                             contentAlignment = Alignment.Center,
                         ) {
-                            Icon(imageVector = Icons.Default.Key, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(18.dp))
+                            Icon(imageVector = Icons.Default.Key, contentDescription = null, tint = SecondaryBlueText, modifier = Modifier.size(18.dp))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(text = "How Googly AI Works", fontSize = 15.sp, fontWeight = FontWeight.Black, color = PrimaryBlack)
                     }
-                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = PrimaryBlack)
+                    // 48dp hit area, 28dp visual.
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .clickable(
+                                role = Role.Button,
+                                onClickLabel = "Close",
+                                onClick = onDismiss,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            tint = PrimaryBlack,
+                            modifier = Modifier.size(22.dp),
+                        )
                     }
                 }
 
@@ -748,7 +846,7 @@ private fun AiEngineInfoDialog(
                         "• Every number in an explanation is checked against the server's own facts. Unsupported claims are rejected.\n" +
                         "• If the model is slow, unavailable, or returns something that fails validation, a plain template answer is used instead.",
                     fontSize = 11.sp,
-                    color = Color(0xFF6B7280),
+                    color = MutedText,
                     lineHeight = 16.sp,
                 )
 
@@ -787,14 +885,19 @@ private fun AiEngineInfoDialog(
 private fun AiPromptPill(icon: androidx.compose.ui.graphics.vector.ImageVector, text: String, onClick: () -> Unit) {
     Row(
         modifier = Modifier
+            .heightIn(min = MinTouchTarget)
             .clip(PillShape)
             .background(SurfaceCard)
             .border(1.dp, OutlineVariantColor.copy(alpha = 0.5f), PillShape)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 6.dp),
+            .clickable(
+                role = Role.Button,
+                onClickLabel = text,
+                onClick = onClick,
+            )
+            .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = SecondaryBlue, modifier = Modifier.size(14.dp))
+        Icon(imageVector = icon, contentDescription = null, tint = SecondaryBlueText, modifier = Modifier.size(14.dp))
         Spacer(modifier = Modifier.width(4.dp))
         Text(text = text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = PrimaryBlack)
     }
@@ -811,6 +914,7 @@ private fun ScenarioTab(
 ) {
     Box(
         modifier = modifier
+            .heightIn(min = MinTouchTarget)
             .clip(RoundedCornerShape(8.dp))
             .background(if (isSelected) SecondaryFixedColor.copy(alpha = 0.35f) else SurfaceContainerLow)
             .border(
@@ -818,13 +922,17 @@ private fun ScenarioTab(
                 if (isSelected) SecondaryBlue else OutlineVariantColor.copy(alpha = 0.3f),
                 RoundedCornerShape(8.dp),
             )
-            .clickable(onClick = onClick)
+            .clickable(
+                role = Role.Tab,
+                onClickLabel = "Select $name $title",
+                onClick = onClick,
+            )
             .padding(7.dp),
     ) {
         Column {
-            Text(text = name, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isSelected) SecondaryBlue else Color(0xFF6B7280))
+            Text(text = name, fontSize = 9.sp, fontWeight = FontWeight.Bold, color = if (isSelected) SecondaryBlueText else MutedText)
             Text(text = title, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = PrimaryBlack)
-            Text(text = badge, fontSize = 9.sp, color = if (isSelected) SecondaryBlue else Color(0xFF6B7280))
+            Text(text = badge, fontSize = 9.sp, color = if (isSelected) SecondaryBlueText else MutedText)
         }
     }
 }

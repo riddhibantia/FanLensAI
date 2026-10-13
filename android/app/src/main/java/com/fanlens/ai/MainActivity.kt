@@ -11,6 +11,13 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.collectAsState
+import com.fanlens.ai.ui.FanLensSplash
+import androidx.compose.ui.Modifier
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.getValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -64,36 +71,56 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val hasToken by leagueViewModel.hasToken.collectAsState()
 
-                NavHost(navController = navController, startDestination = if (hasToken) "league" else "auth") {
-                    composable("auth") {
-                        AuthScreen(
-                            viewModel = leagueViewModel,
-                            onSignedIn = {
-                                navController.navigate("league") {
-                                    popUpTo("auth") { inclusive = true }
-                                }
-                            },
-                        )
+                // Brand splash on cold start, drawn above the nav host so the
+                // first frame is the product mark rather than a half-built
+                // screen. It gates nothing: the host composes underneath it.
+                var showSplash by remember { mutableStateOf(true) }
+
+                Box(modifier = Modifier.fillMaxSize()) {
+                    NavHost(navController = navController, startDestination = if (hasToken) "league" else "auth") {
+                        composable("auth") {
+                            AuthScreen(
+                                viewModel = leagueViewModel,
+                                onSignedIn = {
+                                    navController.navigate("league") {
+                                        popUpTo("auth") { inclusive = true }
+                                    }
+                                },
+                            )
+                        }
+                        composable("league") {
+                            LeagueScreen(
+                                viewModel = leagueViewModel,
+                                // Settings is a top-level tab, so route the header's
+                                // gear to that tab instead of pushing a second copy
+                                // of the same surface on top of the stack.
+                                onOpenSettings = { navController.navigate("settings") },
+                                onOpenRoster = { navController.navigate("roster") },
+                                onGrantOverlayPermission = { showOverlayPermissionSettings() },
+                            )
+                        }
+                        composable("roster") {
+                            RosterScreen(
+                                viewModel = leagueViewModel,
+                                onBack = { navController.popBackStack() },
+                            )
+                        }
+                        composable("settings") {
+                            SettingsScreen(
+                                viewModel = leagueViewModel,
+                                onBack = {
+                                    // Returning from the standalone route lands back
+                                    // on the shell rather than an empty stack.
+                                    if (!navController.popBackStack()) {
+                                        navController.navigate("league")
+                                    }
+                                },
+                            )
+                        }
                     }
-                    composable("league") {
-                        LeagueScreen(
-                            viewModel = leagueViewModel,
-                            onOpenSettings = { navController.navigate("settings") },
-                            onOpenRoster = { navController.navigate("roster") },
-                            onGrantOverlayPermission = { showOverlayPermissionSettings() },
-                        )
-                    }
-                    composable("roster") {
-                        RosterScreen(
-                            viewModel = leagueViewModel,
-                            onBack = { navController.popBackStack() },
-                        )
-                    }
-                    composable("settings") {
-                        SettingsScreen(
-                            viewModel = leagueViewModel,
-                            onBack = { navController.popBackStack() },
-                        )
+
+                    if (showSplash) {
+                        FanLensSplash(onFinished = { showSplash = false })
                     }
                 }
             }

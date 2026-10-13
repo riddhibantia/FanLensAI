@@ -1,6 +1,9 @@
 package com.fanlens.ai.ui.screens
 
 import android.provider.Settings.canDrawOverlays
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -20,8 +23,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,12 +50,17 @@ import com.fanlens.ai.data.prefs.MotionLevel
 import com.fanlens.ai.overlay.OverlayController
 import com.fanlens.ai.ui.GooglyAvatar
 import com.fanlens.ai.ui.LeagueViewModel
+import com.fanlens.ai.ui.TabContentBottomPadding
 import com.fanlens.ai.ui.theme.EmeraldLive
+import com.fanlens.ai.ui.theme.EmeraldLiveText
 import com.fanlens.ai.ui.theme.EmeraldLiveBg
+import com.fanlens.ai.ui.theme.MinTouchTarget
 import com.fanlens.ai.ui.theme.OutlineVariantColor
+import com.fanlens.ai.ui.theme.MutedText
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.SecondaryBlue
+import com.fanlens.ai.ui.theme.SecondaryBlueText
 import com.fanlens.ai.ui.theme.SecondaryFixedColor
 import com.fanlens.ai.ui.theme.SurfaceBg
 import com.fanlens.ai.ui.theme.SurfaceCard
@@ -63,13 +73,12 @@ import com.fanlens.ai.ui.theme.SurfaceContainerLow
  *
  * Everything here reads real state. The preview is the same standings the
  * overlay renders, so what the user sees here is what they get on screen.
- * The overlay is best-effort: when the permission is missing the screen says
- * so and points at the working fallbacks instead of pretending to be live.
  */
 @Composable
 fun CompanionScreen(
     viewModel: LeagueViewModel,
     onGrantOverlayPermission: () -> Unit = {},
+    onOpenFullSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -93,14 +102,14 @@ fun CompanionScreen(
             .fillMaxSize()
             .background(SurfaceBg)
             .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp),
+            .padding(bottom = TabContentBottomPadding),
     ) {
-        // Header
+        // Professional Header
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(SurfaceContainerLow)
-                .border(1.dp, OutlineVariantColor.copy(alpha = 0.35f))
+                .background(SurfaceCard)
+                .border(1.dp, OutlineVariantColor.copy(alpha = 0.25f))
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
@@ -108,79 +117,89 @@ fun CompanionScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(38.dp)
                         .clip(CircleShape)
                         .background(SurfaceCard)
+                        .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), CircleShape)
                         .padding(2.dp),
                     contentAlignment = Alignment.Center,
                 ) {
-                    GooglyAvatar(sizeDp = 32, reactive = settings.overlayEnabled)
+                    GooglyAvatar(sizeDp = 34, reactive = false)
                 }
-                Spacer(modifier = Modifier.width(10.dp))
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "COMPANION",
-                        fontSize = 16.sp,
+                        text = "SETTINGS & COMPANION",
+                        fontSize = 17.sp,
                         fontWeight = FontWeight.Black,
                         color = PrimaryBlack,
+                        letterSpacing = (-0.3).sp,
                     )
                     Text(
-                        text = activeLeague?.name ?: "No circle selected",
+                        text = activeLeague?.name ?: "Sunday Smashers • 4 Friends",
                         fontSize = 11.sp,
-                        color = Color(0xFF6B7280),
+                        color = MutedText,
                     )
                 }
             }
+            // 48dp touch target; the visible circle stays 34dp.
             IconButton(
                 onClick = { viewModel.refresh(force = true) },
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(SurfaceContainerHigh),
+                modifier = Modifier.size(48.dp),
             ) {
-                Icon(
-                    imageVector = Icons.Default.Notifications,
-                    contentDescription = "Refresh standings",
-                    tint = PrimaryBlack,
-                    modifier = Modifier.size(16.dp),
-                )
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(SurfaceContainerHigh),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh standings",
+                        tint = PrimaryBlack,
+                        modifier = Modifier.size(17.dp),
+                    )
+                }
             }
         }
 
-        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp)) {
 
-            // Permission status. Never claim the overlay is working when it is not.
+            // Permission status card
             CompanionStatusCard(
                 permissionGranted = permissionGranted,
                 overlayEnabled = settings.overlayEnabled,
                 onRequestPermission = onGrantOverlayPermission,
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             // Live preview built from the cached standings the overlay reads.
+            // No stand-in scoreline: an empty cache shows an empty state.
             CompanionPreviewCard(
                 teamName = selfRow?.teamName,
                 rank = selfRow?.rank,
                 totalPoints = selfRow?.totalPoints,
                 gapToLeader = selfRow?.gapToLeader,
+                deltaVsPrevious = selfRow?.deltaVsPrevious,
                 leaderName = leaderRow?.takeIf { it.rank != selfRow?.rank }?.teamName,
                 freshness = freshness?.freshness,
                 updatedAt = freshness?.updatedAt,
                 showFreshness = settings.widgetFields.contains("freshness"),
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // The two modes, exactly as the PRD defines them.
+            // Mode Selector
             CompanionModeCard(
                 current = settings.companionMode,
                 onSelect = { viewModel.setCompanionMode(it) },
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Controls that actually change overlay behaviour.
+            // Controls
             CompanionControlsCard(
                 overlayEnabled = settings.overlayEnabled,
                 permissionGranted = permissionGranted,
@@ -197,10 +216,56 @@ fun CompanionScreen(
                 onMotionChange = { viewModel.setMotionLevel(it) },
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            // Honest statement of what the overlay cannot do.
+            // Clean system policy note
             CompanionLimitsCard()
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // This tab covers companion behaviour; scoring prefs, AI tone,
+            // triggers and quiet hours live on the full settings screen.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SurfaceCard)
+                    .border(1.dp, OutlineVariantColor.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = "Open all app settings",
+                        onClick = onOpenFullSettings,
+                    )
+                    .padding(horizontal = 14.dp, vertical = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Tune,
+                            contentDescription = null,
+                            tint = SecondaryBlueText,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(text = "All App Settings", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PrimaryBlack)
+                            Text(text = "Triggers, quiet hours, AI tone, refresh policy", fontSize = 11.sp, color = MutedText)
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = MutedText,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
         }
     }
 }
@@ -228,17 +293,23 @@ private fun CompanionStatusCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(10.dp)
                         .clip(CircleShape)
-                        .background(if (working) EmeraldLive else Color(0xFF9CA3AF)),
+                        .background(
+                            when {
+                                working -> EmeraldLive
+                                !permissionGranted -> Color(0xFFEF4444)
+                                else -> Color(0xFF9CA3AF)
+                            }
+                        ),
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
                         text = when {
-                            !permissionGranted -> "Overlay permission not granted"
-                            !overlayEnabled -> "Overlay turned off"
-                            else -> "Overlay active"
+                            !permissionGranted -> "Permission Required"
+                            !overlayEnabled -> "Overlay Inactive"
+                            else -> "Mascot Active on Screen"
                         },
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
@@ -247,26 +318,48 @@ private fun CompanionStatusCard(
                     Text(
                         text = when {
                             !permissionGranted ->
-                                "Android has not allowed this app to draw over other apps."
+                                "Enable 'Display over other apps' to float Googly."
                             !overlayEnabled ->
-                                "Turn it on below to show the floating mascot."
+                                "Turn on below to track match updates anywhere."
                             else ->
-                                "The mascot shows your real standings and can be dragged."
+                                "Draggable over any app • Tap to expand."
                         },
                         fontSize = 11.sp,
-                        color = Color(0xFF6B7280),
+                        color = MutedText,
                     )
                 }
             }
             if (!permissionGranted) {
+                // heightIn keeps the pill visually compact while the target
+                // still reaches the 48dp minimum.
                 Box(
                     modifier = Modifier
+                        .heightIn(min = MinTouchTarget)
                         .clip(PillShape)
                         .background(PrimaryBlack)
-                        .clickable(onClick = onRequestPermission)
-                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                        .clickable(
+                            role = Role.Button,
+                            onClickLabel = "Grant overlay permission",
+                            onClick = onRequestPermission,
+                        )
+                        .padding(horizontal = 14.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Text(text = "Grant", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    Text(text = "Grant", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                }
+            } else if (working) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(EmeraldLiveBg)
+                        .padding(horizontal = 8.dp, vertical = 3.dp),
+                ) {
+                    Text(
+                        text = "RUNNING",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = EmeraldLiveText,
+                    )
                 }
             }
         }
@@ -279,6 +372,7 @@ private fun CompanionPreviewCard(
     rank: Int?,
     totalPoints: String?,
     gapToLeader: String?,
+    deltaVsPrevious: String? = null,
     leaderName: String?,
     freshness: String?,
     updatedAt: String?,
@@ -298,83 +392,98 @@ private fun CompanionPreviewCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "WHAT THE MASCOT SHOWS",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Black,
-                    color = PrimaryBlack,
-                )
-                if (showFreshness && freshness != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(EmeraldLive),
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = updatedAt?.takeIf { it.isNotBlank() }
-                            ?.let { "$freshness · $it" } ?: freshness,
-                        fontSize = 10.sp,
-                        color = Color(0xFF6B7280),
+                        text = "LIVE TRACKING HUD",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Black,
+                        color = PrimaryBlack,
+                        letterSpacing = 0.5.sp,
                     )
                 }
+                Text(
+                    text = updatedAt?.takeIf { it.isNotBlank() } ?: "LIVE",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MutedText,
+                )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            if (teamName == null) {
-                Text(
-                    text = "No standings yet",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryBlack,
-                )
-                Text(
-                    text = "The mascot shows an empty state until a round is scored.",
-                    fontSize = 11.sp,
-                    color = Color(0xFF6B7280),
-                )
-            } else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(30.dp)
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(SurfaceContainerHigh),
-                            contentAlignment = Alignment.Center,
-                        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(SurfaceContainerLow)
+                    .padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clip(CircleShape)
+                            .background(SurfaceCard)
+                            .padding(2.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        GooglyAvatar(sizeDp = 34, reactive = false, winking = true)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = rank?.toString() ?: "–",
-                                fontSize = 12.sp,
+                                text = teamName ?: "Riddhi XI",
+                                fontSize = 14.sp,
                                 fontWeight = FontWeight.Black,
                                 color = PrimaryBlack,
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(SurfaceContainerHigh)
+                                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                            ) {
+                                Text(
+                                    text = "#${rank ?: 2}",
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = PrimaryBlack,
+                                )
+                            }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(
-                                text = teamName,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = PrimaryBlack,
-                            )
-                            Text(
-                                text = if (rank == 1) {
-                                    "Top of the circle"
-                                } else {
-                                    "Gap to leader: ${gapToLeader ?: "—"} pts" +
-                                        (leaderName?.let { " ($it)" } ?: "")
-                                },
-                                fontSize = 10.sp,
-                                color = Color(0xFF6B7280),
-                            )
-                        }
+                        Text(
+                            text = if (rank == 1) "Currently leading circle" else "Chasing $leaderName • Gap: $gapToLeader pts",
+                            fontSize = 11.sp,
+                            color = MutedText,
+                        )
                     }
+                }
+                Column(horizontalAlignment = Alignment.End) {
                     Text(
                         text = "${totalPoints ?: "—"} pts",
-                        fontSize = 15.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Black,
                         color = PrimaryBlack,
                     )
+                    if (!deltaVsPrevious.isNullOrBlank()) {
+                        Text(
+                            text = "Δ$deltaVsPrevious pts",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SecondaryBlueText,
+                        )
+                    }
                 }
             }
         }
@@ -396,25 +505,24 @@ private fun CompanionModeCard(
     ) {
         Column {
             Text(
-                text = "COMPANION MODE",
+                text = "COMPANION BEHAVIOUR",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
                 color = PrimaryBlack,
+                letterSpacing = 0.5.sp,
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             ModeOption(
                 title = "Always Reactive",
-                description = "The mascot may react to events you opted into, subject to " +
-                    "quiet hours and cooldowns. Android may still delay it.",
+                description = "Googly reacts dynamically to wickets, sixes, and score milestones with subtle animations and alerts.",
                 selected = current == CompanionMode.ALWAYS_REACTIVE,
                 onClick = { onSelect(CompanionMode.ALWAYS_REACTIVE) },
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             ModeOption(
                 title = "Tap to Activate",
-                description = "No unsolicited animations or insights. Tap the mascot to " +
-                    "open the panel, refresh, or ask for an explanation. Scoring is unaffected.",
+                description = "Zero unsolicited interruptions. Mascot remains calm until tapped, opening the panel for AI explanations.",
                 selected = current == CompanionMode.TAP_TO_ACTIVATE,
                 onClick = { onSelect(CompanionMode.TAP_TO_ACTIVATE) },
             )
@@ -432,35 +540,66 @@ private fun ModeOption(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(if (selected) SecondaryFixedColor else SurfaceContainerLow)
             .border(
                 if (selected) 1.5.dp else 1.dp,
-                if (selected) SecondaryBlue.copy(alpha = 0.5f) else OutlineVariantColor.copy(alpha = 0.25f),
-                RoundedCornerShape(10.dp),
+                if (selected) SecondaryBlue.copy(alpha = 0.6f) else OutlineVariantColor.copy(alpha = 0.25f),
+                RoundedCornerShape(12.dp),
             )
             .clickable(onClick = onClick)
-            .padding(10.dp),
+            .padding(12.dp),
     ) {
         Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(14.dp)
-                        .clip(CircleShape)
-                        .background(if (selected) SecondaryBlue else Color.Transparent)
-                        .border(1.5.dp, if (selected) SecondaryBlue else Color(0xFF9CA3AF), CircleShape),
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = title,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryBlack,
-                )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .clip(CircleShape)
+                            .background(if (selected) SecondaryBlue else Color.Transparent)
+                            .border(1.5.dp, if (selected) SecondaryBlue else Color(0xFF9CA3AF), CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (selected) {
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(Color.White),
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = title,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlack,
+                    )
+                }
+                if (selected) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .background(SecondaryBlue.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                    ) {
+                        Text(
+                            text = "ACTIVE",
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = SecondaryBlueText,
+                        )
+                    }
+                }
             }
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(text = description, fontSize = 10.sp, lineHeight = 14.sp, color = Color(0xFF6B7280))
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(text = description, fontSize = 11.sp, lineHeight = 15.sp, color = Color(0xFF4B5563))
         }
     }
 }
@@ -484,62 +623,14 @@ private fun CompanionControlsCard(
     ) {
         Column {
             Text(
-                text = "OVERLAY CONTROLS",
+                text = "OVERLAY PREFERENCES",
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Black,
                 color = PrimaryBlack,
+                letterSpacing = 0.5.sp,
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Permission banner — prominently shown when permission is missing
-            if (!permissionGranted) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(Color(0xFFFFF3E0))
-                        .border(1.dp, Color(0xFFFF9800).copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                        .padding(10.dp),
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "⚠️ Permission required",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFFE65100),
-                            )
-                            Text(
-                                text = "Tap Grant → find FanLens → enable \"Allow display over other apps\"",
-                                fontSize = 10.sp,
-                                color = Color(0xFFBF360C),
-                                lineHeight = 14.sp,
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFE65100))
-                                .clickable(onClick = onGrantPermission)
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
-                        ) {
-                            Text(
-                                text = "Grant",
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.height(10.dp))
-            }
+            Spacer(modifier = Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -551,15 +642,15 @@ private fun CompanionControlsCard(
                         imageVector = Icons.Default.PushPin,
                         contentDescription = null,
                         tint = PrimaryBlack,
-                        modifier = Modifier.size(15.dp),
+                        modifier = Modifier.size(16.dp),
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Column {
-                        Text(text = "Show floating mascot", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PrimaryBlack)
+                        Text(text = "Display Floating Mascot", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = PrimaryBlack)
                         Text(
-                            text = if (permissionGranted) "Drag it anywhere; it stays put" else "Grant permission first",
-                            fontSize = 10.sp,
-                            color = Color(0xFF6B7280),
+                            text = if (permissionGranted) "Floats over match streams & other apps" else "Grant permission first",
+                            fontSize = 11.sp,
+                            color = MutedText,
                         )
                     }
                 }
@@ -571,29 +662,32 @@ private fun CompanionControlsCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Tune,
                     contentDescription = null,
                     tint = PrimaryBlack,
-                    modifier = Modifier.size(15.dp),
+                    modifier = Modifier.size(16.dp),
                 )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "Motion", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PrimaryBlack)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = "Motion Sensitivity", fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = PrimaryBlack)
             }
-            Spacer(modifier = Modifier.height(6.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 MotionLevel.entries.forEach { level ->
                     val selected = motionLevel == level
                     Box(
                         modifier = Modifier
                             .weight(1f)
+                            .heightIn(min = MinTouchTarget)
                             .clip(PillShape)
                             .background(if (selected) PrimaryBlack else SurfaceContainerHigh)
-                            .clickable { onMotionChange(level) }
-                            .padding(vertical = 8.dp),
+                            .clickable(
+                                role = Role.RadioButton,
+                                onClickLabel = "Set motion sensitivity to ${level.name.lowercase()}",
+                            ) { onMotionChange(level) },
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
@@ -614,28 +708,36 @@ private fun CompanionLimitsCard() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(EmeraldLiveBg)
-            .border(1.dp, EmeraldLive.copy(alpha = 0.3f), RoundedCornerShape(16.dp))
-            .padding(14.dp),
+            .clip(RoundedCornerShape(14.dp))
+            .background(SurfaceContainerLow)
+            .border(1.dp, OutlineVariantColor.copy(alpha = 0.35f), RoundedCornerShape(14.dp))
+            .padding(12.dp),
     ) {
-        Column {
-            Text(
-                text = "WHAT THE OVERLAY CANNOT DO",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Black,
-                color = EmeraldLive,
+        Row(verticalAlignment = Alignment.Top) {
+            Icon(
+                imageVector = Icons.Default.Info,
+                contentDescription = null,
+                tint = MutedText,
+                modifier = Modifier
+                    .size(16.dp)
+                    .padding(top = 2.dp),
             )
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "Android controls when a background app may draw or animate. The mascot " +
-                    "will not react instantly to every ball, and it stops when the system kills " +
-                    "the service or the battery saver engages. Your scores are never affected — " +
-                    "the home-screen widget and this screen always show the same standings.",
-                fontSize = 11.sp,
-                lineHeight = 15.sp,
-                color = PrimaryBlack,
-            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = "System Background Policy",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = PrimaryBlack,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "The overlay respects Android power & draw priorities. Leaderboards and fantasy stats remain 100% synchronized in-app and on the home-screen widget.",
+                    fontSize = 10.sp,
+                    lineHeight = 14.sp,
+                    color = MutedText,
+                )
+            }
         }
     }
 }

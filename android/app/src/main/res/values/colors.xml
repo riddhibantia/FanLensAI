@@ -2,4 +2,8 @@
 <resources>
     <color name="ball_red">#FFD32F2F</color>
     <color name="pitch_dark">#FF0B1D26</color>
+    <!-- Matches SurfaceBg in the Compose theme. Used as the window background so
+         the OS launch frame and the in-app splash are the same colour and read
+         as one continuous screen rather than two. -->
+    <color name="surface_bg">#FFF9F9F9</color>
 </resources>

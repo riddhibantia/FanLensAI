@@ -10,6 +10,7 @@ import com.fanlens.ai.data.repository.InsightRepository
 import com.fanlens.ai.data.repository.LeagueRepository
 import com.fanlens.ai.data.repository.PreferencesRepository
 import com.fanlens.ai.data.repository.RosterRepository
+import kotlinx.coroutines.launch
 
 /** Manual DI: one graph, created in Application.onCreate. */
 object ServiceLocator {
@@ -36,6 +37,9 @@ object ServiceLocator {
         eventRepository = EventRepository(api, settingsStore, database.cacheDao())
         insightRepository = InsightRepository(api, settingsStore)
         preferencesRepository = PreferencesRepository(api, settingsStore)
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            com.fanlens.ai.data.cache.MockDataSeeder.seedDefaults(database.cacheDao())
+        }
     }
 }
 

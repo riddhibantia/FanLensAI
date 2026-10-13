@@ -30,10 +30,12 @@ import com.fanlens.ai.ui.GooglyAvatar
 import com.fanlens.ai.ui.LeagueViewModel
 import com.fanlens.ai.ui.theme.BallRed
 import com.fanlens.ai.ui.theme.OutlineVariantColor
+import com.fanlens.ai.ui.theme.MutedText
 import com.fanlens.ai.ui.theme.PillShape
 import com.fanlens.ai.ui.theme.PrimaryBlack
 import com.fanlens.ai.ui.theme.SecondaryBlue
 import com.fanlens.ai.ui.theme.SurfaceBg
+import com.fanlens.ai.ui.theme.WordmarkStyle
 
 @Composable
 fun AuthScreen(viewModel: LeagueViewModel, onSignedIn: () -> Unit) {
@@ -53,21 +55,21 @@ fun AuthScreen(viewModel: LeagueViewModel, onSignedIn: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        GooglyAvatar(sizeDp = 96, reactive = true, winking = true)
-        Spacer(modifier = Modifier.height(16.dp))
+        GooglyAvatar(sizeDp = 96, reactive = false, winking = true)
+        Spacer(modifier = Modifier.height(18.dp))
+        // Brand lockup on the launch screen, in the bundled wordmark face so the
+        // first thing the user sees matches the header pill on the match page.
         Text(
             text = "FANLENS AI",
+            style = WordmarkStyle.copy(fontSize = 30.sp, lineHeight = 36.sp),
             color = PrimaryBlack,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Black,
-            letterSpacing = (-0.5).sp,
         )
         Text(
             text = "Dream11 Live Fantasy Companion",
-            color = Color(0xFF6B7280),
+            color = MutedText,
             fontSize = 13.sp,
             fontWeight = FontWeight.Medium,
-            modifier = Modifier.padding(top = 4.dp, bottom = 32.dp),
+            modifier = Modifier.padding(top = 6.dp, bottom = 32.dp),
         )
         OutlinedTextField(
             value = name,

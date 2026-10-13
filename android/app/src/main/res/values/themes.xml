@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <style name="Theme.FanLens" parent="android:Theme.Material.NoActionBar">
-        <item name="android:statusBarColor">@color/pitch_dark</item>
-        <item name="android:windowBackground">@color/pitch_dark</item>
+        <!-- The window background is what the OS paints before Compose starts.
+             It matches SurfaceBg so the launch frame and the in-app splash read
+             as one continuous white screen instead of a dark flash then white. -->
+        <item name="android:windowBackground">@color/surface_bg</item>
+        <item name="android:statusBarColor">@color/surface_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

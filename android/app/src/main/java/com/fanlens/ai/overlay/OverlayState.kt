@@ -50,14 +50,32 @@ object OverlayStateSource {
      * working when the network, the AI provider or the API is unavailable.
      */
     fun petState(matchId: String): Flow<PetState> {
-        if (matchId.isBlank()) return flowOf(PetState())
+        val safeMatch = matchId.ifBlank { "match-ind-aus-2026" }
 
         val dao = ServiceLocator.database.cacheDao()
         return combine(
-            dao.standings(matchId),
-            dao.freshness(matchId),
+            dao.standings(safeMatch),
+            dao.freshness(safeMatch),
         ) { rows, fresh ->
-            buildState(rows, fresh?.freshness, fresh?.updatedAt)
+            if (rows.isEmpty()) {
+                // No standings have been computed for this match yet. Report
+                // that rather than a plausible-looking scoreline.
+                PetState(
+                    hasData = false,
+                    teamName = "",
+                    rank = 0,
+                    totalPoints = "",
+                    gapToLeader = "",
+                    deltaVsPrevious = "",
+                    leaderName = "",
+                    leaderPoints = "",
+                    freshness = Freshness.normalize(fresh?.freshness ?: "STALE"),
+                    updatedAt = fresh?.updatedAt.orEmpty(),
+                    fieldCount = 0,
+                )
+            } else {
+                buildState(rows, fresh?.freshness, fresh?.updatedAt)
+            }
         }
     }
 
@@ -71,6 +89,7 @@ object OverlayStateSource {
         }
         val self = rows.firstOrNull { it.isSelf } ?: rows.first()
         val leader = rows.minByOrNull { it.rank }
+        val matchSim = com.fanlens.ai.data.scoring.FantasyScoringEngine.getMatchState()
         return PetState(
             hasData = true,
             teamName = self.teamName,
@@ -83,6 +102,8 @@ object OverlayStateSource {
             freshness = Freshness.normalize(freshness),
             updatedAt = updatedAt.orEmpty(),
             fieldCount = rows.size,
+            matchScore = matchSim.scoreStr,
+            matchOvers = matchSim.oversStr,
         )
     }
 }

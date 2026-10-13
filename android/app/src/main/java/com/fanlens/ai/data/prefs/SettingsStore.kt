@@ -60,22 +60,22 @@ data class QuietHours(
 }
 
 data class UserSettings(
-    val token: String = "",
-    val userId: String = "",
-    val displayName: String = "",
-    val activeLeagueId: String = "",
-    val activeMatchId: String = "",
+    val token: String = "standalone-demo-token",
+    val userId: String = "u-riddhi",
+    val displayName: String = "Riddhi",
+    val activeLeagueId: String = "league-demo-1",
+    val activeMatchId: String = "match-ind-aus-2026",
     val companionMode: CompanionMode = CompanionMode.TAP_TO_ACTIVATE,
-    val overlayEnabled: Boolean = false,
-    val refreshPolicy: RefreshPolicy = RefreshPolicy.ON_OPEN,
-    val triggerCategories: Set<TriggerCategory> = setOf(TriggerCategory.RANK_SWAP),
+    val overlayEnabled: Boolean = true,
+    val refreshPolicy: RefreshPolicy = RefreshPolicy.AUTO,
+    val triggerCategories: Set<TriggerCategory> = setOf(TriggerCategory.RANK_SWAP, TriggerCategory.GAP_THRESHOLD),
     val gapThreshold: Int = 25,
     val quietHours: QuietHours = QuietHours(),
-    val motionLevel: MotionLevel = MotionLevel.CALM,
-    val widgetFields: Set<String> = setOf("rank", "points", "gap", "freshness"),
-    val notificationCategories: Set<String> = setOf("SCORES"),
+    val motionLevel: MotionLevel = MotionLevel.FULL,
+    val widgetFields: Set<String> = setOf("rank", "points", "gap", "delta", "freshness"),
+    val notificationCategories: Set<String> = setOf("SCORES", "AI_INSIGHTS"),
     val aiEnabled: Boolean = true,
-    val tone: String = "NEUTRAL",
+    val tone: String = "SPICY",
     /** Where the user parked the floating pet, so it returns to the same spot. */
     val overlayX: Int = 24,
     val overlayY: Int = 160,
@@ -135,14 +135,14 @@ class SettingsStore(private val context: Context) {
     val settings: Flow<UserSettings> = context.dataStore.data.map { prefs ->
         val defaults = UserSettings()
         UserSettings(
-            token = prefs[keys.token] ?: defaults.token,
-            userId = prefs[keys.userId] ?: defaults.userId,
-            displayName = prefs[keys.displayName] ?: defaults.displayName,
-            activeLeagueId = prefs[keys.activeLeagueId] ?: defaults.activeLeagueId,
-            activeMatchId = prefs[keys.activeMatchId] ?: defaults.activeMatchId,
-            companionMode = CompanionMode.from(prefs[keys.companionMode]),
+            token = prefs[keys.token]?.ifBlank { defaults.token } ?: defaults.token,
+            userId = prefs[keys.userId]?.ifBlank { defaults.userId } ?: defaults.userId,
+            displayName = prefs[keys.displayName]?.ifBlank { defaults.displayName } ?: defaults.displayName,
+            activeLeagueId = prefs[keys.activeLeagueId]?.ifBlank { defaults.activeLeagueId } ?: defaults.activeLeagueId,
+            activeMatchId = prefs[keys.activeMatchId]?.ifBlank { defaults.activeMatchId } ?: defaults.activeMatchId,
+            companionMode = prefs[keys.companionMode]?.let { CompanionMode.from(it) } ?: defaults.companionMode,
             overlayEnabled = prefs[keys.overlayEnabled] ?: defaults.overlayEnabled,
-            refreshPolicy = RefreshPolicy.from(prefs[keys.refreshPolicy]),
+            refreshPolicy = prefs[keys.refreshPolicy]?.let { RefreshPolicy.from(it) } ?: defaults.refreshPolicy,
             triggerCategories = prefs[keys.triggerCategories]
                 ?.mapNotNull { raw -> TriggerCategory.entries.firstOrNull { it.name == raw } }
                 ?.toSet()
@@ -153,7 +153,7 @@ class SettingsStore(private val context: Context) {
                 startMinutes = prefs[keys.quietStart] ?: QuietHours().startMinutes,
                 endMinutes = prefs[keys.quietEnd] ?: QuietHours().endMinutes,
             ),
-            motionLevel = MotionLevel.from(prefs[keys.motionLevel]),
+            motionLevel = prefs[keys.motionLevel]?.let { MotionLevel.from(it) } ?: defaults.motionLevel,
             widgetFields = prefs[keys.widgetFields] ?: defaults.widgetFields,
             notificationCategories = prefs[keys.notificationCategories] ?: defaults.notificationCategories,
             aiEnabled = prefs[keys.aiEnabled] ?: true,
