@@ -84,12 +84,15 @@ class LeagueViewModel(
     }
 
     fun signIn(displayName: String) = viewModelScope.launch {
+        android.util.Log.d("FanLensAuth", "signIn triggered with displayName=$displayName")
         _uiState.value = _uiState.value.copy(loading = true, error = "")
         leagueRepository.authenticate(displayName, "android-device")
             .onSuccess {
+                android.util.Log.d("FanLensAuth", "authenticate success!")
                 _uiState.value = _uiState.value.copy(loading = false, message = "signed in")
             }
             .onFailure { ex ->
+                android.util.Log.e("FanLensAuth", "authenticate failed: ${ex.message}", ex)
                 _uiState.value = _uiState.value.copy(loading = false, error = ex.message ?: "sign-in failed")
             }
     }

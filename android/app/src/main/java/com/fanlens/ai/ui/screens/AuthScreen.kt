@@ -27,6 +27,7 @@ import com.fanlens.ai.ui.theme.FanLensTheme
 @Composable
 fun AuthScreen(viewModel: LeagueViewModel, onSignedIn: () -> Unit) {
     val hasToken by viewModel.hasToken.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     var name by remember { mutableStateOf("") }
 
     LaunchedEffect(hasToken) {
@@ -58,13 +59,21 @@ fun AuthScreen(viewModel: LeagueViewModel, onSignedIn: () -> Unit) {
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
+        if (uiState.error.isNotBlank()) {
+            Text(
+                text = uiState.error,
+                color = BallRed,
+                style = com.fanlens.ai.ui.theme.MetaStyle,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
         Button(
             onClick = { viewModel.signIn(name) },
-            enabled = name.isNotBlank(),
+            enabled = name.isNotBlank() && !uiState.loading,
             shape = com.fanlens.ai.ui.theme.PillShape,
             modifier = Modifier.padding(top = 16.dp).fillMaxWidth(),
         ) {
-            Text("Continue")
+            Text(if (uiState.loading) "Connecting..." else "Continue")
         }
     }
 }

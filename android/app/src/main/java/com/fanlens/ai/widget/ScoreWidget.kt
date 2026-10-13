@@ -21,6 +21,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import androidx.compose.ui.unit.sp
 import com.fanlens.ai.MainActivity
 import com.fanlens.ai.data.cache.CachedFreshness
 import com.fanlens.ai.data.cache.CachedStanding
@@ -92,47 +93,51 @@ private fun WidgetContent(
             .clickable(openApp),
         verticalAlignment = Alignment.Top,
     ) {
+        // DESIGN.md `mono-label`: uppercase technical marker, not a bold wordmark.
         Text(
-            text = "FanLens",
-            style = TextStyle(color = ColorProvider(Color(0xFFE53935)), fontWeight = FontWeight.Bold),
+            text = "FANLENS",
+            style = TextStyle(
+                color = ColorProvider(Color(0xFFE53935)),
+                fontSize = 12.sp,
+            ),
         )
         if (self == null) {
-            Text(text = "No team data yet", style = TextStyle(color = textColor))
+            Text(text = "No team data yet", style = TextStyle(color = textColor, fontSize = 14.sp))
             Text(
-                text = if (tapMode) "tap to activate" else "always reactive",
-                style = TextStyle(color = subColor),
+                text = if (tapMode) "TAP TO ACTIVATE" else "ALWAYS REACTIVE",
+                style = TextStyle(color = subColor, fontSize = 12.sp),
             )
         } else {
             Row(modifier = GlanceModifier.padding(top = 4.dp)) {
                 if (showRank) {
                     Text(
                         text = "#${self.rank}",
-                        style = TextStyle(color = textColor, fontWeight = FontWeight.Bold),
+                        style = TextStyle(color = textColor, fontSize = 14.sp),
                     )
                 }
                 if (showPoints) {
                     Text(
                         text = (if (showRank) " of $total · " else "") + "${self.totalPoints} pts",
-                        style = TextStyle(color = textColor),
+                        style = TextStyle(color = textColor, fontSize = 14.sp),
                     )
                 }
             }
             if (showGap) {
                 Text(
                     text = "gap to leader: ${self.gapToLeader}",
-                    style = TextStyle(color = subColor),
+                    style = TextStyle(color = subColor, fontSize = 12.sp),
                 )
             }
             if (showDelta) {
                 Text(
                     text = "delta: ${self.deltaVsPrevious}",
-                    style = TextStyle(color = subColor),
+                    style = TextStyle(color = subColor, fontSize = 12.sp),
                 )
             }
             if (showFreshness) {
                 Text(
                     text = freshness,
-                    style = TextStyle(color = subColor),
+                    style = TextStyle(color = subColor, fontSize = 12.sp),
                 )
             }
         }
