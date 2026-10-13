@@ -87,17 +87,20 @@ fun LeagueScreen(
                 )
             }
 
-            // Floating mascot: drag it anywhere, tap it to open Googly AI.
+            // In-app mascot shortcut to open Googly AI from Matches, Leagues, or Settings.
+            // Hide it when the user is ALREADY inside the Googly AI tab.
             val settings by viewModel.settings.collectAsState()
-            FloatingCompanionWidget(
-                onClick = {
-                    currentTab = 2 // Opens Googly AI Lab
-                },
-                initialX = settings.overlayX.toFloat(),
-                initialY = settings.overlayY.toFloat(),
-                onMoved = { x, y -> viewModel.setPetPosition(x, y) },
-                modifier = Modifier.fillMaxSize(),
-            )
+            if (currentTab != 2) {
+                FloatingCompanionWidget(
+                    onClick = {
+                        currentTab = 2 // Opens Googly AI Lab
+                    },
+                    initialX = settings.overlayX.toFloat(),
+                    initialY = settings.overlayY.toFloat(),
+                    onMoved = { x, y -> viewModel.setPetPosition(x, y) },
+                    modifier = Modifier.fillMaxSize(),
+                )
+            }
 
             // Loading indicator
             if (uiState.loading) {

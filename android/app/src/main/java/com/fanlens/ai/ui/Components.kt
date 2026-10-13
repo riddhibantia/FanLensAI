@@ -32,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DynamicFeed
 import androidx.compose.material.icons.filled.Leaderboard
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.SportsCricket
 import androidx.compose.material.icons.filled.TrendingUp
@@ -472,7 +473,7 @@ fun FanLensBottomBar(
             Triple(0, "Matches", Icons.Default.SportsCricket),
             Triple(1, "Leagues", Icons.Default.Leaderboard),
             Triple(2, "Googly AI", Icons.Default.SmartToy),
-            Triple(3, "Feed", Icons.Default.DynamicFeed),
+            Triple(3, "Settings", Icons.Default.Settings),
         )
 
         destinations.forEach { (index, label, icon) ->
@@ -565,23 +566,6 @@ fun FloatingCompanionWidget(
                     }
                 },
         ) {
-            if (!dragging) {
-                Box(
-                    modifier = Modifier
-                        .clip(PillShape)
-                        .background(SurfaceContainerLow)
-                        .border(1.dp, PrimaryContainerColor.copy(alpha = 0.3f), PillShape)
-                        .padding(horizontal = 8.dp, vertical = 3.dp),
-                ) {
-                    Text(
-                        text = "Drag me • Tap to Chat 💬",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBlack,
-                    )
-                }
-                Spacer(modifier = Modifier.height(3.dp))
-            }
             Box(
                 modifier = Modifier
                     .size(52.dp)
