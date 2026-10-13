@@ -56,7 +56,18 @@ def validate_payload(payload: dict) -> dict:
     }
 
 
-def find_existing_event(session: Session, provider_event_id: str) -> MatchEvent | None:
+def find_existing_event(
+    session: Session, match_id: str, provider_event_id: str
+) -> MatchEvent | None:
+    """Idempotency is per match, not global.
+
+    Two leagues can watch the same real fixture, and providers reuse event IDs
+    across feeds. Scoping by ``match_id`` keeps a duplicate in one match from
+    silently discarding a genuine event in another.
+    """
     return session.scalar(
-        select(MatchEvent).where(MatchEvent.provider_event_id == provider_event_id)
+        select(MatchEvent).where(
+            MatchEvent.match_id == match_id,
+            MatchEvent.provider_event_id == provider_event_id,
+        )
     )

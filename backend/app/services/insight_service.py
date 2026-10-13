@@ -2,11 +2,11 @@ from dataclasses import dataclass
 from datetime import timedelta
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.ai.prompt_builder import build_prompt, render_template
-from app.ai.validator import InvalidInsightError, validate_llm_output
+from app.ai.validator import validate_llm_output
 from app.models.insights import AIInsight
 from app.models.matches import Match
 from app.models.scoring import FantasyTeam, PointsLedger
@@ -94,6 +94,25 @@ def _contributing_events(
     ]
 
 
+def _top_picks(session: Session, team_id: str, limit: int = 3) -> list[dict]:
+    """Per-player totals, summed from the ledger. Never estimated."""
+    rows = session.execute(
+        select(
+            PointsLedger.player_id,
+            func.sum(PointsLedger.points).label("total"),
+        )
+        .where(PointsLedger.fantasy_team_id == team_id)
+        .group_by(PointsLedger.player_id)
+        .order_by(func.sum(PointsLedger.points).desc())
+        .limit(limit)
+    )
+    return [
+        {"player_id": player_id, "points": str(total)}
+        for player_id, total in rows
+        if total is not None
+    ]
+
+
 def detect_triggers(
     current: StandingRow,
     previous: SnapshotRow | None,
@@ -126,6 +145,7 @@ def build_facts(
     current: StandingRow,
     previous: SnapshotRow | None,
     rows: list[StandingRow],
+    question: str | None = None,
 ) -> dict:
     leader = rows[0]
     contributing = _contributing_events(session, current.fantasy_team_id)
@@ -145,7 +165,13 @@ def build_facts(
         ),
         "leader_team_name": leader.team_name,
         "leader_total_points": leader.total_points,
+        "second_gap": (
+            rows[1].gap_to_leader if len(rows) > 1 else 0
+        ),
         "contributing_events": contributing,
+        "recent_events": contributing,
+        "top_picks": _top_picks(session, current.fantasy_team_id),
+        "question": question,
         "event_ids": event_ids,
         "participants": len(rows),
     }
@@ -195,9 +221,13 @@ def generate_insight(
         if trigger_type not in set(prefs["trigger_categories"]):
             return None
 
-    cached = _recent_insight(session, league_id, user_id, trigger_type)
-    if cached is not None:
-        return cached
+    # The cooldown exists to stop the mascot repeating proactive nudges. A
+    # question the user just typed must be answered fresh: caching every
+    # question under USER_QUESTION returned the previous answer for 5 minutes.
+    if trigger_type != USER_QUESTION:
+        cached = _recent_insight(session, league_id, user_id, trigger_type)
+        if cached is not None:
+            return cached
 
     template_text = render_template(trigger_type, facts, facts.get("participants", 1))
     text = template_text

@@ -8,6 +8,7 @@ Prints the user tokens the Android app needs (device-token auth).
 """
 import json
 import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -17,9 +18,11 @@ from sqlalchemy import select
 from app.core.security import generate_device_token, generate_invite_code
 from app.db.session import SessionLocal
 from app.models.leagues import League, LeagueMember
-from app.models.matches import Match
+from app.models.matches import Match, MatchEvent
 from app.models.scoring import FantasyTeam, FantasyTeamPlayer, ScoringRuleset
 from app.models.users import DeviceToken, User, UserPreferences
+from app.services.scoring.pipeline import process_match_event
+from app.services.standings_service import recalculate_and_snapshot
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -147,6 +150,48 @@ def seed() -> dict:
                 )
             )
 
+        # Bowl the scripted balls through the real scoring pipeline, so every
+        # number the demo shows was computed by the engine rather than written
+        # into a fixture. Re-running is safe: the pipeline is idempotent.
+        script = json.loads(
+            (ROOT / "app" / "data" / "demo_script.json").read_text(encoding="utf-8")
+        )
+        start_sequence = (
+            session.scalar(
+                select(MatchEvent.sequence)
+                .where(MatchEvent.match_id == match.id)
+                .order_by(MatchEvent.sequence.desc())
+                .limit(1)
+            )
+            or 0
+        )
+        scored = 0
+        for offset, ball in enumerate(script, start=1):
+            payload = {
+                "match_id": match.id,
+                "provider_event_id": f"seed-{match.id}-{start_sequence + offset}",
+                "sequence": start_sequence + offset,
+                "occurred_at": (
+                    datetime.now(UTC) - timedelta(seconds=len(script) - offset)
+                ).isoformat(),
+                "batter": ball["batter"],
+                "bowler": ball["bowler"],
+                "fielder": ball.get("fielder"),
+                "runs": ball.get("runs", 0),
+                "wicket": ball.get("wicket", False),
+                "wicket_kind": ball.get("wicket_kind"),
+            }
+            result = process_match_event(session, payload)
+            if result.get("status") != "duplicate":
+                scored += 1
+        output["balls_scored"] = scored
+
+        rows, _ = recalculate_and_snapshot(session, match.id)
+        output["standings"] = [
+            {"rank": r.rank, "team": r.team_name, "points": str(r.total_points)}
+            for r in rows
+        ]
+
         for name in ("Nikki", "Rahul"):
             raw, token_hash = generate_device_token()
             session.add(DeviceToken(user_id=users[name].id, token_hash=token_hash))
@@ -166,5 +211,10 @@ if __name__ == "__main__":
     print(f"league_id: {result['league_id']}  match_id: {result['match_id']}")
     if result["invite_code"]:
         print(f"invite code (show once): {result['invite_code']}")
+    print(f"balls scored this run: {result.get('balls_scored', 0)}")
+    if result.get("standings"):
+        print("standings:")
+        for row in result["standings"]:
+            print(f"  #{row['rank']} {row['team']}: {row['points']} pts")
     for name, token in result["tokens"].items():
         print(f"token[{name}]: {token}")

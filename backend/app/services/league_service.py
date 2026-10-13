@@ -37,6 +37,25 @@ def join_league(
     league = session.get(League, league_id)
     if league is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "league not found")
+    return _join(session, user, league, invite_code)
+
+
+def join_league_by_code(session: Session, user: User, invite_code: str) -> League:
+    """Joins using only the code, which is all a friend actually receives.
+
+    Leagues store a hash, so a code cannot be looked up by value in SQL. Private
+    circles are small, so we compare hashes in Python. An unknown code gives the
+    same 403 as a wrong one, so this cannot be used to probe which codes exist.
+    """
+    wanted = hash_secret(invite_code)
+    for league in session.scalars(select(League)):
+        if league.invite_code_hash == wanted:
+            _join(session, user, league, invite_code)
+            return league
+    raise HTTPException(status.HTTP_403_FORBIDDEN, "invalid invite code")
+
+
+def _join(session: Session, user: User, league: League, invite_code: str) -> LeagueMember:
     if league.invite_expires_at is not None and league.invite_expires_at < utcnow():
         raise HTTPException(status.HTTP_410_GONE, "invite code expired")
     if hash_secret(invite_code) != league.invite_code_hash:

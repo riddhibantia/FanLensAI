@@ -2,7 +2,11 @@ from decimal import Decimal
 
 from app.models.matches import Match
 from app.services.scoring.pipeline import process_match_event
-from app.services.standings_service import compute_standings, match_freshness, recalculate_and_snapshot
+from app.services.standings_service import (
+    compute_standings,
+    match_freshness,
+    recalculate_and_snapshot,
+)
 
 
 def _payload(**overrides) -> dict:
@@ -29,7 +33,7 @@ def test_single_team_stands_first(session, seeded) -> None:
     row = rows[0]
     assert row.rank == 1
     assert row.total_points == Decimal("10.0")
-    assert row.gap_to_leader == Decimal("0")
+    assert row.gap_to_leader == Decimal(0)
     assert row.delta_vs_previous == Decimal("10.0")
     assert batch_id
 
@@ -41,7 +45,7 @@ def test_replay_does_not_change_totals(session, seeded) -> None:
     process_match_event(session, payload)
     second, _ = recalculate_and_snapshot(session, seeded["match_id"])
     assert first[0].total_points == second[0].total_points == Decimal("10.0")
-    assert second[0].delta_vs_previous == Decimal("0")
+    assert second[0].delta_vs_previous == Decimal(0)
 
 
 def test_tie_break_is_deterministic(session, seeded) -> None:
@@ -61,12 +65,11 @@ def test_tie_break_is_deterministic(session, seeded) -> None:
     rows = compute_standings(session, seeded["match_id"])
     assert [row.fantasy_team_id for row in rows] == [seeded["team_id"], other.id]
     assert rows[0].rank == 1 and rows[1].rank == 2
-    assert rows[1].gap_to_leader == Decimal("0")
+    assert rows[1].gap_to_leader == Decimal(0)
 
 
 def test_rank_orders_by_points(session, seeded, rules) -> None:
     from app.models.leagues import League
-    from app.models.matches import Match
     from app.models.scoring import FantasyTeam, FantasyTeamPlayer
     from app.models.users import User
 
@@ -115,7 +118,7 @@ def test_rank_orders_by_points(session, seeded, rules) -> None:
     assert by_user[seeded["user_id"]].rank == 2
     leader = rows[0]
     trailer = rows[1]
-    assert leader.gap_to_leader == Decimal("0")
+    assert leader.gap_to_leader == Decimal(0)
     assert trailer.gap_to_leader == Decimal("6.0")  # (6+2)x2 - 10
 
 

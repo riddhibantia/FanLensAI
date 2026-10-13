@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.models.base import Base, new_id
@@ -16,6 +16,12 @@ class StandingsSnapshot(Base):
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"))
     # Groups the rows of one full standings recalculation.
     batch_id: Mapped[str] = mapped_column(String(36))
+    # Monotonic within a match, so the newest batch is unambiguous. captured_at
+    # is a wall-clock server default: batches written in the same second tie,
+    # which made "previous standings" arbitrary and delta_vs_previous wrong.
+    # The standings service assigns this explicitly per batch; the default keeps
+    # direct construction working.
+    batch_seq: Mapped[int] = mapped_column(BigInteger, default=0, index=True)
     total_points: Mapped[float] = mapped_column(Numeric(12, 2))
     rank: Mapped[int]
     gap_to_leader: Mapped[float] = mapped_column(Numeric(12, 2))

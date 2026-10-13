@@ -14,7 +14,7 @@ from app.models.matches import Match
 from app.models.scoring import FantasyTeam
 from app.models.users import User
 from app.schemas.insights import ExplainRequest, InsightListResponse, InsightResponse
-from app.services.insight_service import USER_QUESTION, generate_insight, build_facts
+from app.services.insight_service import USER_QUESTION, build_facts, generate_insight
 from app.services.league_service import require_member
 from app.services.standings_service import compute_standings
 
@@ -82,8 +82,7 @@ def explain(
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "no fantasy team for this match")
 
-    facts = build_facts(session, row, None, rows)
-    facts["question"] = body.question or ""
+    facts = build_facts(session, row, None, rows, question=body.question or "")
     insight = generate_insight(
         session,
         league_id,

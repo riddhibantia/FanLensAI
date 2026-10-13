@@ -7,9 +7,12 @@ import com.fanlens.ai.data.cache.CachedStanding
 import com.fanlens.ai.data.network.EventDto
 import com.fanlens.ai.data.network.ExplainRequest
 import com.fanlens.ai.data.network.FanLensApi
+import com.fanlens.ai.data.network.LeagueCreatedResponse
+import com.fanlens.ai.data.network.LeagueSummaryResponse
 import com.fanlens.ai.data.network.PreferencesRequest
 import com.fanlens.ai.data.network.RosterPlayerRequest
 import com.fanlens.ai.data.network.RosterRequest
+import com.fanlens.ai.data.network.RulesetResponse
 import com.fanlens.ai.data.network.StandingsResponse
 import com.fanlens.ai.data.prefs.CompanionMode
 import com.fanlens.ai.data.prefs.MotionLevel
@@ -28,21 +31,38 @@ class LeagueRepository(
 ) {
     val activeLeagueId: Flow<String> = settingsStore.settings.map { it.activeLeagueId }
 
+    /**
+     * Signs in against the server. A failure is reported, never faked: an
+     * invented token would produce a signed-in looking app whose every request
+     * the backend rejects.
+     */
     suspend fun authenticate(displayName: String, deviceId: String): Result<String> = runCatching {
         val response = api.authDevice(displayName, deviceId)
         settingsStore.setAuth(response.token, response.userId, displayName)
         response.token
     }
 
-    suspend fun createLeague(name: String): Result<String> = runCatching {
+    suspend fun listMyLeagues(): Result<List<LeagueSummaryResponse>> = runCatching {
+        api.listMyLeagues().leagues
+    }
+
+    /** Returns the new league plus its one-time invite code, which is never readable again. */
+    suspend fun createLeague(name: String): Result<LeagueCreatedResponse> = runCatching {
         val league = api.createLeague(name)
-        settingsStore.setActiveLeague(league.id)
-        league.id
+        settingsStore.setActiveLeague(league.id)  // switching league clears the match
+        league
     }
 
     suspend fun joinLeague(leagueId: String, inviteCode: String): Result<Unit> = runCatching {
         api.joinLeague(leagueId, inviteCode)
-        settingsStore.setActiveLeague(leagueId)
+        settingsStore.setActiveLeague(leagueId)  // switching league clears the match
+    }
+
+    /** Joins with an invite code alone; the league id is resolved by the server. */
+    suspend fun joinLeagueByCode(inviteCode: String): Result<LeagueSummaryResponse> = runCatching {
+        val league = api.joinLeagueByCode(inviteCode)
+        settingsStore.setActiveLeague(league.id)  // switching league clears the match
+        league
     }
 
     /** Fetches standings and writes the cache; the UI reads the cache first. */
@@ -133,6 +153,9 @@ class RosterRepository(
     ): Result<Unit> = runCatching {
         api.upsertRoster(leagueId, RosterRequest(matchId, teamName, rulesetId, players))
     }
+
+    /** Rulesets the server accepts. Without this the user types an ID blind. */
+    suspend fun rulesets(): Result<List<RulesetResponse>> = runCatching { api.listRulesets() }
 }
 
 class InsightRepository(

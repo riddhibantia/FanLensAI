@@ -10,6 +10,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 enum class CompanionMode {
@@ -75,18 +76,34 @@ data class UserSettings(
     val notificationCategories: Set<String> = setOf("SCORES"),
     val aiEnabled: Boolean = true,
     val tone: String = "NEUTRAL",
+    /** Where the user parked the floating pet, so it returns to the same spot. */
+    val overlayX: Int = 24,
+    val overlayY: Int = 160,
 ) {
     /**
-     * Reactive gate used by the overlay and the widget service: everything a
-     * proactive reaction must satisfy before it may show.
+     * Reactive gate used by the overlay and the widget service.
+     *
+     * Delegates to [ProactiveGate.canShowProactive] so there is exactly one
+     * implementation. This used to be a separate, weaker copy that omitted the
+     * AI toggle, trigger opt-in, cooldown and gap-threshold checks — the overlay
+     * ran on this copy while the tests exercised the other one.
+     *
+     * [trigger] defaults to the broadest category so callers that only want
+     * "may the mascot move at all" still get the AI/quiet-hours/mode checks.
      */
-    fun proactiveAllowed(now: java.util.Calendar = java.util.Calendar.getInstance()): Boolean =
-        companionMode == CompanionMode.ALWAYS_REACTIVE &&
-            overlayEnabled &&
-            triggerCategories.isNotEmpty() &&
-            !quietHours.covers(
-                now.get(java.util.Calendar.HOUR_OF_DAY) * 60 + now.get(java.util.Calendar.MINUTE)
-            )
+    fun proactiveAllowed(
+        trigger: TriggerCategory = TriggerCategory.RANK_SWAP,
+        gapDelta: Int? = null,
+        lastShownAtMillis: Long? = null,
+        now: java.util.Calendar = java.util.Calendar.getInstance(),
+    ): Boolean = ProactiveGate.canShowProactive(
+        settings = this,
+        trigger = trigger,
+        gapDelta = gapDelta,
+        lastShownAtMillis = lastShownAtMillis,
+        minuteOfDay = now.get(java.util.Calendar.HOUR_OF_DAY) * 60 +
+            now.get(java.util.Calendar.MINUTE),
+    )
 }
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "fanlens_prefs")
@@ -111,6 +128,8 @@ class SettingsStore(private val context: Context) {
         val notificationCategories = stringSetPreferencesKey("notification_categories")
         val aiEnabled = booleanPreferencesKey("ai_enabled")
         val tone = stringPreferencesKey("tone")
+        val overlayX = intPreferencesKey("overlay_x")
+        val overlayY = intPreferencesKey("overlay_y")
     }
 
     val settings: Flow<UserSettings> = context.dataStore.data.map { prefs ->
@@ -139,6 +158,8 @@ class SettingsStore(private val context: Context) {
             notificationCategories = prefs[keys.notificationCategories] ?: defaults.notificationCategories,
             aiEnabled = prefs[keys.aiEnabled] ?: true,
             tone = prefs[keys.tone] ?: defaults.tone,
+            overlayX = prefs[keys.overlayX] ?: defaults.overlayX,
+            overlayY = prefs[keys.overlayY] ?: defaults.overlayY,
         )
     }
 
@@ -148,6 +169,22 @@ class SettingsStore(private val context: Context) {
 
     suspend fun setOverlayEnabled(enabled: Boolean) {
         context.dataStore.edit { it[keys.overlayEnabled] = enabled }
+    }
+
+    /** Remembers where the pet was dropped, so it reappears in the same spot. */
+    suspend fun setOverlayPosition(x: Int, y: Int) {
+        context.dataStore.edit { prefs ->
+            prefs[keys.overlayX] = x
+            prefs[keys.overlayY] = y
+        }
+    }
+
+    /** Last known pet position, read once when the overlay view is added. */
+    suspend fun currentOverlayPosition(): Pair<Int, Int> {
+        val prefs = context.dataStore.data.first()
+        val defaults = UserSettings()
+        return (prefs[keys.overlayX] ?: defaults.overlayX) to
+            (prefs[keys.overlayY] ?: defaults.overlayY)
     }
 
     suspend fun setRefreshPolicy(policy: RefreshPolicy) {
@@ -200,10 +237,37 @@ class SettingsStore(private val context: Context) {
         }
     }
 
-    suspend fun setActiveLeague(leagueId: String, matchId: String = "") {
-        context.dataStore.edit {
-            it[keys.activeLeagueId] = leagueId
-            it[keys.activeMatchId] = matchId
+    /**
+     * Selects the active league.
+     *
+     * [matchId] is nullable on purpose. Passing null (the default) means "this
+     * league has no match selected yet" and **clears** the stored match, which
+     * is what creating or joining a league should do. Callers that must not
+     * disturb the current match should use [setActiveMatch] instead.
+     *
+     * Previously this defaulted to `""` and unconditionally overwrote the
+     * stored match, so creating or joining any league silently wiped the match
+     * the overlay and widget were reading.
+     */
+    suspend fun setActiveLeague(leagueId: String, matchId: String? = null) {
+        context.dataStore.edit { prefs ->
+            prefs[keys.activeLeagueId] = leagueId
+            if (matchId != null) {
+                prefs[keys.activeMatchId] = matchId
+            }
+        }
+    }
+
+    /** Switches the active match without touching the active league. */
+    suspend fun setActiveMatch(matchId: String) {
+        context.dataStore.edit { it[keys.activeMatchId] = matchId }
+    }
+
+    /** Clears both selections, e.g. on sign-out. */
+    suspend fun clearActiveSelection() {
+        context.dataStore.edit { prefs ->
+            prefs[keys.activeLeagueId] = ""
+            prefs[keys.activeMatchId] = ""
         }
     }
 }

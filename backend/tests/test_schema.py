@@ -1,10 +1,10 @@
+from datetime import datetime
+
 import pytest
 from sqlalchemy import inspect
 from sqlalchemy.exc import IntegrityError
 
 from tests.conftest import TRD_TABLES
-
-from datetime import datetime
 
 OCCURRED_AT = datetime(2026, 10, 10, 10, 0, 0)
 

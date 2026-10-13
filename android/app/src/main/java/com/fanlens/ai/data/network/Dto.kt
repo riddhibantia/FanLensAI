@@ -45,6 +45,20 @@ data class LeagueDetailResponse(
 )
 
 @Serializable
+data class LeagueSummaryResponse(
+    val id: String,
+    val name: String,
+    @SerialName("owner_user_id") val ownerUserId: String,
+    @SerialName("created_at") val createdAt: String,
+    @SerialName("is_owner") val isOwner: Boolean,
+    @SerialName("member_count") val memberCount: Int,
+    @SerialName("team_count") val teamCount: Int,
+)
+
+@Serializable
+data class MyLeaguesResponse(val leagues: List<LeagueSummaryResponse>)
+
+@Serializable
 data class JoinRequest(@SerialName("invite_code") val inviteCode: String)
 
 @Serializable
@@ -187,4 +201,11 @@ data class PreferencesResponse(
     @SerialName("notification_categories") val notificationCategories: List<String>,
     @SerialName("ai_enabled") val aiEnabled: Boolean,
     val tone: String,
+)
+
+@Serializable
+data class RulesetResponse(
+    val id: String,
+    val name: String,
+    val version: String,
 )

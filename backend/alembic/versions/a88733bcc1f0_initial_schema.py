@@ -81,7 +81,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['match_id'], ['matches.id'], ),
     sa.ForeignKeyConstraint(['superseded_by'], ['match_events.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('provider_event_id')
+    sa.UniqueConstraint('match_id', 'provider_event_id', name='uq_match_provider_event')
     )
     op.create_table('player_match_stats',
     sa.Column('id', sa.String(length=36), nullable=False),

@@ -1,9 +1,6 @@
 import json
 
-import pytest
-
 from app.services.insight_service import (
-    GAP_THRESHOLD,
     RANK_SWAP,
     collect_proactive_insights,
     generate_insight,
@@ -260,7 +257,7 @@ def test_cooldown_returns_cached_insight(session, seeded) -> None:
 
 def _add_rival_team(session, seeded) -> None:
     """A second roster so ranks can actually swap."""
-    from app.models.leagues import League, LeagueMember
+    from app.models.leagues import LeagueMember
     from app.models.scoring import FantasyTeam, FantasyTeamPlayer
     from app.models.users import User
 
@@ -337,7 +334,6 @@ def test_rank_swap_insight_only_in_reactive_mode(session, seeded) -> None:
 
 
 def test_default_preferences_are_conservative(session, seeded) -> None:
-    from app.models.users import UserPreferences
 
     user_id = "user-without-prefs"
     prefs = get_or_default_preferences(session, user_id)

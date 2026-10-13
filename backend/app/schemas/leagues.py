@@ -35,3 +35,15 @@ class MemberResponse(BaseModel):
 
 class LeagueDetailResponse(LeagueResponse):
     members: list[MemberResponse]
+
+
+class LeagueSummaryResponse(LeagueResponse):
+    """One row in the user's circle list. Carries counts, never the invite code."""
+
+    is_owner: bool
+    member_count: int
+    team_count: int
+
+
+class MyLeaguesResponse(BaseModel):
+    leagues: list[LeagueSummaryResponse]

@@ -41,7 +41,7 @@ def _totals_by_team(session: Session, match_id: str) -> dict[str, Decimal]:
     teams = list(
         session.scalars(select(FantasyTeam).where(FantasyTeam.match_id == match_id))
     )
-    totals = {team.id: Decimal("0") for team in teams}
+    totals = {team.id: Decimal(0) for team in teams}
     rows = session.execute(
         select(PointsLedger.fantasy_team_id, func.sum(PointsLedger.points))
         .join(FantasyTeam, FantasyTeam.id == PointsLedger.fantasy_team_id)
@@ -54,11 +54,16 @@ def _totals_by_team(session: Session, match_id: str) -> dict[str, Decimal]:
 
 
 def _previous_totals(session: Session, match_id: str) -> dict[str, Decimal]:
-    """Totals from the most recent snapshot batch, if any."""
+    """Totals from the most recent snapshot batch, if any.
+
+    Ordered by ``batch_seq``, not ``captured_at``. The timestamp is a wall-clock
+    server default, so two batches written in the same second tie and "latest"
+    becomes arbitrary — which surfaced as wrong ``delta_vs_previous`` values.
+    """
     latest_batch = session.scalar(
         select(StandingsSnapshot.batch_id)
         .where(StandingsSnapshot.match_id == match_id)
-        .order_by(StandingsSnapshot.captured_at.desc())
+        .order_by(StandingsSnapshot.batch_seq.desc())
         .limit(1)
     )
     if latest_batch is None:
@@ -112,6 +117,16 @@ def recalculate_and_snapshot(
     """Computes standings and writes one snapshot batch. Returns (rows, batch_id)."""
     rows = compute_standings(session, match_id)
     batch_id = new_id()
+    # One sequence per batch, taken from the current maximum so it stays
+    # monotonic even if an earlier batch is deleted. Every row shares it.
+    next_seq = (
+        session.scalar(
+            select(func.max(StandingsSnapshot.batch_seq)).where(
+                StandingsSnapshot.match_id == match_id
+            )
+        )
+        or 0
+    ) + 1
     for row in rows:
         session.add(
             StandingsSnapshot(
@@ -120,6 +135,7 @@ def recalculate_and_snapshot(
                 fantasy_team_id=row.fantasy_team_id,
                 user_id=row.user_id,
                 batch_id=batch_id,
+                batch_seq=next_seq,
                 total_points=row.total_points,
                 rank=row.rank,
                 gap_to_leader=row.gap_to_leader,

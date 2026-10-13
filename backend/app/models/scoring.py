@@ -1,8 +1,8 @@
 from sqlalchemy import (
+    JSON,
     Boolean,
     ForeignKey,
     Index,
-    JSON,
     Numeric,
     String,
     UniqueConstraint,

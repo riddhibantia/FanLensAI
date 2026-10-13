@@ -29,7 +29,7 @@ def _multiplier(is_captain: bool, is_vice: bool, multipliers: dict) -> Decimal:
         return Decimal(str(multipliers["captain"]))
     if is_vice:
         return Decimal(str(multipliers["vice"]))
-    return Decimal("1")
+    return Decimal(1)
 
 
 def _persist_stats(session: Session, match_id: str, stats_after: dict[str, dict]) -> None:
@@ -55,7 +55,12 @@ def process_match_event(session: Session, payload: dict) -> dict:
     """
     event_payload = validate_payload(payload)
 
-    if find_existing_event(session, event_payload["provider_event_id"]) is not None:
+    if (
+        find_existing_event(
+            session, event_payload["match_id"], event_payload["provider_event_id"]
+        )
+        is not None
+    ):
         return {
             "status": "duplicate",
             "provider_event_id": event_payload["provider_event_id"],

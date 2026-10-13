@@ -280,3 +280,105 @@ def test_roster_non_member_forbidden(client: TestClient, session: Session) -> No
         headers=outsider,
     )
     assert response.status_code == 403
+
+
+def test_list_my_leagues_returns_only_memberships(client: TestClient) -> None:
+    owner = auth(client, "Nikki")
+    mine = client.post("/v1/leagues", json={"name": "Sunday Smashers"}, headers=owner)
+    friends = client.post("/v1/leagues", json={"name": "Office Stars"}, headers=owner)
+    assert mine.status_code == 201 and friends.status_code == 201
+
+    stranger = auth(client, "Rahul")
+    theirs = client.post("/v1/leagues", json={"name": "Not Mine"}, headers=stranger)
+    assert theirs.status_code == 201
+
+    listed = client.get("/v1/leagues", headers=owner)
+    assert listed.status_code == 200, listed.text
+    names = {row["name"] for row in listed.json()["leagues"]}
+    assert names == {"Sunday Smashers", "Office Stars"}
+
+    # The stranger sees only their own league.
+    other = client.get("/v1/leagues", headers=stranger)
+    assert {row["name"] for row in other.json()["leagues"]} == {"Not Mine"}
+
+
+def test_list_my_leagues_reports_counts_and_never_leaks_codes(client: TestClient) -> None:
+    owner = auth(client, "Nikki")
+    created = client.post("/v1/leagues", json={"name": "Sunday Smashers"}, headers=owner)
+    league = created.json()
+
+    listed = client.get("/v1/leagues", headers=owner)
+    row = listed.json()["leagues"][0]
+    assert row["is_owner"] is True
+    assert row["member_count"] == 1
+    assert row["team_count"] == 0
+    # A code is shown once at creation and hashed at rest; it is never readable again.
+    assert "invite_code" not in row
+    assert league["invite_code"] not in listed.text
+
+
+
+def test_join_by_code_without_knowing_league_id(client: TestClient) -> None:
+    """A friend only ever has the code, never the internal league id."""
+    owner = auth(client, "Nikki")
+    created = client.post("/v1/leagues", json={"name": "Sunday Smashers"}, headers=owner)
+    invite = created.json()["invite_code"]
+
+    friend = auth(client, "Rahul")
+    joined = client.post(
+        "/v1/leagues/join-by-code", json={"invite_code": invite}, headers=friend
+    )
+    assert joined.status_code == 201, joined.text
+    body = joined.json()
+    assert body["name"] == "Sunday Smashers"
+    assert body["is_owner"] is False
+    assert body["member_count"] == 2
+    assert "invite_code" not in body
+
+    # The friend now sees it in their own list.
+    listed = client.get("/v1/leagues", headers=friend)
+    assert [row["name"] for row in listed.json()["leagues"]] == ["Sunday Smashers"]
+
+
+def test_join_by_bad_code_is_indistinguishable_from_unknown(client: TestClient) -> None:
+    owner = auth(client, "Nikki")
+    client.post("/v1/leagues", json={"name": "Sunday Smashers"}, headers=owner)
+
+    friend = auth(client, "Rahul")
+    bad = client.post(
+        "/v1/leagues/join-by-code", json={"invite_code": "nope"}, headers=friend
+    )
+    assert bad.status_code == 403
+
+
+def test_join_by_code_twice_conflicts(client: TestClient) -> None:
+    owner = auth(client, "Nikki")
+    created = client.post("/v1/leagues", json={"name": "Sunday Smashers"}, headers=owner)
+    invite = created.json()["invite_code"]
+
+    friend = auth(client, "Rahul")
+    first = client.post("/v1/leagues/join-by-code", json={"invite_code": invite}, headers=friend)
+    assert first.status_code == 201
+    second = client.post("/v1/leagues/join-by-code", json={"invite_code": invite}, headers=friend)
+    assert second.status_code == 409
+
+
+def test_expired_invite_code_rejected_by_code_route(client: TestClient, session: Session) -> None:
+    owner = auth(client, "Nikki")
+    created = client.post("/v1/leagues", json={"name": "Sunday Smashers"}, headers=owner)
+    league_id = created.json()["id"]
+    invite = created.json()["invite_code"]
+
+    from datetime import datetime, timedelta
+
+    from app.models.leagues import League
+
+    row = session.get(League, league_id)
+    row.invite_expires_at = datetime.utcnow() - timedelta(hours=1)
+    session.commit()
+
+    friend = auth(client, "Rahul")
+    denied = client.post(
+        "/v1/leagues/join-by-code", json={"invite_code": invite}, headers=friend
+    )
+    assert denied.status_code == 410

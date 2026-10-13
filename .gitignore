@@ -9,8 +9,10 @@ venv/
 *.log
 # Android
 .gradle/
+.gradle-home/
 build/
 local.properties
 .idea/
 *.iml
+*.apk
 .DS_Store

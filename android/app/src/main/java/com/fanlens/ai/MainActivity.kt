@@ -33,8 +33,10 @@ class MainActivity : ComponentActivity() {
 
     private val overlayPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-            // Permission is tracked by settings; the overlay service starts next
-            // time the user enables it.
+            // If the user just granted the permission, auto-enable the overlay
+            if (Settings.canDrawOverlays(this)) {
+                leagueViewModel.setOverlayEnabled(true)
+            }
             leagueViewModel.refreshOverlayState(this)
         }
 
@@ -82,10 +84,16 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("roster") {
-                        RosterScreen(viewModel = leagueViewModel)
+                        RosterScreen(
+                            viewModel = leagueViewModel,
+                            onBack = { navController.popBackStack() },
+                        )
                     }
                     composable("settings") {
-                        SettingsScreen(viewModel = leagueViewModel)
+                        SettingsScreen(
+                            viewModel = leagueViewModel,
+                            onBack = { navController.popBackStack() },
+                        )
                     }
                 }
             }

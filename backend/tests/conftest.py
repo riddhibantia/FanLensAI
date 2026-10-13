@@ -1,12 +1,12 @@
+import json
 from pathlib import Path
 
 import pytest
-from alembic import command
 from alembic.config import Config
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-import json
+from alembic import command
 
 ROOT = Path(__file__).resolve().parents[1]
 

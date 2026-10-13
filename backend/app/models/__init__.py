@@ -1,5 +1,5 @@
-from app.models.base import Base
 from app.models import insights, leagues, matches, scoring, standings, users
+from app.models.base import Base
 
 __all__ = [
     "Base",

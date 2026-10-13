@@ -114,9 +114,29 @@ class FanLensApi(
         )
     }
 
+    /** Joining with only the code, which is all a friend is given. */
+    suspend fun joinLeagueByCode(inviteCode: String): LeagueSummaryResponse {
+        val body = sendJson(
+            "POST", "v1/leagues/join-by-code",
+            JoinRequest.serializer(), JoinRequest(inviteCode),
+        )
+        return decode(body, LeagueSummaryResponse.serializer())
+    }
+
     suspend fun getLeague(leagueId: String): LeagueDetailResponse {
         val body = getJson("v1/leagues/$leagueId")
         return decode(body, LeagueDetailResponse.serializer())
+    }
+
+    suspend fun listMyLeagues(): MyLeaguesResponse {
+        val body = getJson("v1/leagues")
+        return decode(body, MyLeaguesResponse.serializer())
+    }
+
+    /** Rulesets the server will accept for a roster. */
+    suspend fun listRulesets(): List<RulesetResponse> {
+        val body = getJson("v1/rulesets")
+        return json.decodeFromString(ListSerializer(RulesetResponse.serializer()), body.ifBlank { "[]" })
     }
 
     // ---- rosters ----

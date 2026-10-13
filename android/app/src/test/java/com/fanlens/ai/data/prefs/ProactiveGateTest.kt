@@ -104,10 +104,38 @@ class ProactiveGateTest {
     }
 
     @Test
-    fun notificationsOptOut_suppressesProactive() {
+    fun notificationOptOut_doesNotDisableMascotMotion() {
+        // Notification categories control notifications, not mascot motion.
+        // Tying them together meant ALWAYS_REACTIVE did nothing by default,
+        // because the default categories are {"SCORES"}.
         val settings = reactiveSettings().copy(notificationCategories = setOf("SCORES"))
-        assertFalse(
+        assertTrue(
             ProactiveGate.canShowProactive(settings, TriggerCategory.RANK_SWAP, minuteOfDay = 600),
+        )
+    }
+
+    @Test
+    fun gapTriggerWithoutDelta_doesNotFire() {
+        // A null delta means the gap is unknown, so the user's threshold cannot
+        // be shown to be met. This used to fall through and fire regardless.
+        val settings = reactiveSettings()
+        assertFalse(
+            ProactiveGate.canShowProactive(
+                settings, TriggerCategory.GAP_THRESHOLD, gapDelta = null, minuteOfDay = 600,
+            ),
+        )
+    }
+
+    @Test
+    fun backwardClock_doesNotBlockForever() {
+        val settings = reactiveSettings()
+        val now = 1_000_000L
+        // lastShown is "in the future" because the clock moved back.
+        assertTrue(
+            ProactiveGate.canShowProactive(
+                settings, TriggerCategory.RANK_SWAP,
+                lastShownAtMillis = now + 60_000L, nowMillis = now, minuteOfDay = 600,
+            ),
         )
     }
 
